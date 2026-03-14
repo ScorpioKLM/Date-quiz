@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Unfiltered Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyALDXdMAxe-KM2HogO887U13fkz7h1aM5A",
+    authDomain: "date-quiz-5a158.firebaseapp.com",
+    databaseURL: "https://date-quiz-5a158-default-rtdb.firebaseio.com",
+    projectId: "date-quiz-5a158",
+    storageBucket: "date-quiz-5a158.firebasestorage.app",
+    messagingSenderId: "393791444370",
+    appId: "1:393791444370:web:0d33fd90645558dec15d4b"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const ALL_QUESTIONS = [
+    { cat: "Preferences", q: "Favorite position?", opts: ["Missionary (don't @ me)", "Doggy", "Cowgirl / Reverse cowgirl", "Other"] },
+    { cat: "Preferences", q: "Morning sex or night sex?", opts: ["Morning — sets the tone for the day", "Night — I'm fully warmed up", "Afternoon, honestly the most underrated", "Other"] },
+    { cat: "Preferences", q: "Quickie or full experience?", opts: ["Quickie — efficient and hot", "30-45 min, solid middle ground", "Hour+ or I'm not fully satisfied", "Other"] },
+    { cat: "Preferences", q: "What's your pace?", opts: ["Slow and deliberate — every second counts", "Hard and intense — I want to feel it", "Rough — the rougher the better", "Other"] },
+    { cat: "Preferences", q: "Making love vs. having sex — do you distinguish between the two?", opts: ["Yes, completely different experiences", "Depends on the person I'm with", "No — sex is sex regardless of feelings", "Other"] },
+    { cat: "Preferences", q: "Do you prefer passionate and emotional or purely physical?", opts: ["Passionate and emotional every time", "Purely physical — keep feelings out of it", "Both depending on the relationship", "Other"] },
+    { cat: "Preferences", q: "Lights on or off?", opts: ["On — I want to see everything", "Off — feels more intimate", "Candles only, ambiance matters", "Other"] },
+    { cat: "Preferences", q: "How often do you need sex to feel satisfied in a relationship?", opts: ["Daily or I get irritable", "Few times a week is ideal", "Once a week is enough for me", "Other"] },
+    { cat: "Preferences", q: "Do you prefer giving or receiving oral?", opts: ["Giving — I genuinely love it", "Receiving — don't skip it", "Both equally, it's a package deal", "Other"] },
+    { cat: "Preferences", q: "Kissing during sex — essential or optional?", opts: ["Essential, it's the most intimate part", "Optional, depends on the energy", "Not really my thing during", "Other"] },
+    { cat: "Preferences", q: "Ideal foreplay length?", opts: ["5-10 min, let's not overthink it", "20-30 min, build it up properly", "As long as possible, foreplay IS the sex", "Other"] },
+    { cat: "Preferences", q: "Cuddling after — required or optional?", opts: ["Required, non-negotiable", "Nice but not mandatory", "I need my space immediately after", "Other"] },
+    { cat: "Preferences", q: "How do you initiate?", opts: ["Physical touch — very direct, no subtlety", "Flirting and sustained eye contact", "I just say it out loud", "Other"] },
+    { cat: "Preferences", q: "Indoors or outdoors?", opts: ["Strictly indoors, comfort matters", "Outdoors if the risk is manageable", "The riskier the location the better", "Other"] },
+    { cat: "Preferences", q: "Do you prefer to lead or follow?", opts: ["I like to lead, always", "I prefer to follow and surrender control", "Depends completely on the person", "Other"] },
+    { cat: "Preferences", q: "How important is eye contact during sex?", opts: ["Critical — it's the most intimate thing", "Hot in brief intense moments", "Makes me feel too exposed, not my thing", "Other"] },
+    { cat: "Preferences", q: "Do you prefer sex that's planned or completely spontaneous?", opts: ["Spontaneous — unplanned is always hotter", "A little anticipation makes it better", "I like knowing it's coming, builds tension", "Other"] },
+    { cat: "Preferences", q: "Where do you like to be touched first?", opts: ["Neck and ears — start slow", "Lower body, skip the buildup", "Everywhere at once", "Other"] },
+    { cat: "Preferences", q: "Do you prefer loud sex or quiet sex?", opts: ["Loud — I don't hold back", "Quiet but intense", "Wherever the moment takes it", "Other"] },
+    { cat: "Preferences", q: "Size — does it actually matter to you?", opts: ["Yes, let's be honest about it", "It's entirely about skill not size", "Somewhere in between", "Other"] },
+    { cat: "Personality", q: "Dominant, submissive, or switch?", opts: ["Dominant — I run the show", "Submissive — I love surrendering control", "Switch — whoever brings more energy leads", "Other"] },
+    { cat: "Personality", q: "Are you vocal or silent?", opts: ["Very vocal — neighbors definitely know", "A little when it's genuinely deserved", "Mostly quiet, more internal", "Other"] },
+    { cat: "Personality", q: "Do you give directions or expect them to figure it out?", opts: ["Very clear verbal directions always", "Hints and body language", "I expect them to read the room", "Other"] },
+    { cat: "Personality", q: "How selfish are you in bed honestly?", opts: ["Completely focused on their pleasure", "50/50 — it's fair game both ways", "I'm there to enjoy myself too, unapologetically", "Other"] },
+    { cat: "Personality", q: "Do you like being told exactly what to do?", opts: ["Yes — being directed is extremely hot", "Sometimes, very situational", "No — I prefer complete autonomy", "Other"] },
+    { cat: "Personality", q: "Have you ever faked it?", opts: ["Yes, more than once honestly", "Once or twice", "Never — I'd rather say something", "Other"] },
+    { cat: "Personality", q: "Are you a giver or a taker?", opts: ["Giver — their satisfaction is mine", "Taker — I lean into receiving", "Equal, I literally keep score", "Other"] },
+    { cat: "Personality", q: "Do you laugh during sex?", opts: ["Yes all the time — it makes it better", "Sometimes when something goes sideways", "No, I'm completely serious about this", "Other"] },
+    { cat: "Personality", q: "Do you like compliments during sex?", opts: ["Yes — tell me absolutely everything", "Once or twice hits right", "No it breaks my concentration", "Other"] },
+    { cat: "Personality", q: "How do you handle bad sex in the moment?", opts: ["Redirect immediately and directly", "Bring it up after, not during", "Suffer in silence and hope it improves", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Dirty talk — yes or no?", opts: ["Yes, the dirtier and more explicit the better", "A little is hot, too much kills the mood", "Hard no — completely ruins it for me", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Dirty talk — how explicit are we talking?", opts: ["Full graphic sentences, very specific", "Suggestive but not overly explicit", "Just names and sounds, nothing verbal", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Bondage or restraints?", opts: ["Yes, absolutely into it", "Curious but haven't gone there yet", "Not my thing at all", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Spanking — giving, receiving, or both?", opts: ["Giving", "Receiving", "Both, no preference", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Roleplay — are you into it?", opts: ["Yes — I have very specific scenarios", "Open to it but haven't explored much", "Not my thing at all", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Have you ever been with more than one person at once?", opts: ["Yes", "No but genuinely curious", "No and not interested", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Public sex — hot or hard pass?", opts: ["Done it multiple times, would do again", "Fantasy I haven't acted on yet", "Way too anxious, hard pass", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Filming — ever done it or want to?", opts: ["Yes, have done it", "I'd consider it with the right person", "Absolutely not under any circumstance", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Blindfolds or sensory deprivation?", opts: ["Yes — losing one sense heightens everything", "Curious and open to trying it", "No, I need to see what's happening", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Daddy/Mommy dynamic — your thing?", opts: ["Yes fully", "Only in very specific contexts", "No, not at all", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Do you watch porn? Does it shape what you want?", opts: ["Yes and yes — it absolutely influences me", "I watch it but it doesn't shape my preferences", "Not really my thing", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Choking — into it?", opts: ["Yes", "Open to it but haven't tried", "No, absolutely not", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Sexting — how good are you at it?", opts: ["Very good — it's basically an art form", "I try, it's not my strongest skill", "Not my thing, I prefer in person", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Hair pulling — into it?", opts: ["Yes — giving and receiving", "Only one direction", "Not into it", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Temperature play — ice, wax, heat?", opts: ["Yes, very into it", "Curious but haven't tried", "No thanks", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Do you have a specific fantasy you've never acted on?", opts: ["Stranger / completely anonymous scenario", "Specific power dynamic or domination", "A very specific location or situation", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Have you ever had sex somewhere you absolutely shouldn't have?", opts: ["Yes, multiple times", "Once", "No but I want to", "Other"] },
+    { cat: "Kinks & Fantasies", q: "Do you prefer one long session or multiple rounds?", opts: ["One long uninterrupted session", "Multiple rounds with breaks", "As many rounds as physically possible", "Other"] },
+    { cat: "Experience", q: "How would you describe your experience level?", opts: ["Very experienced", "Moderately experienced", "Still figuring things out", "Other"] },
+    { cat: "Experience", q: "What made the best sex you've ever had that way?", opts: ["Intense emotional connection", "Physical chemistry completely off the charts", "Someone who knew exactly what they were doing", "Other"] },
+    { cat: "Experience", q: "Have you ever been with someone of the same sex?", opts: ["Yes", "No but I've genuinely thought about it", "No and not something I want to explore", "Other"] },
+    { cat: "Experience", q: "Longest dry spell and how did you handle it?", opts: ["Under a month — stayed busy", "1-6 months — I survived", "Over 6 months — it was a whole journey", "Other"] },
+    { cat: "Experience", q: "Friends with benefits — have you done it?", opts: ["Yes and it worked out completely fine", "Yes and it got very complicated", "No", "Other"] },
+    { cat: "Experience", q: "Sex on a first date — have you done it?", opts: ["Yes", "No but I would", "No and I wouldn't", "Other"] },
+    { cat: "Experience", q: "Have you ever ended things primarily because of sexual incompatibility?", opts: ["Yes, it was the main reason", "It was a factor but not the only one", "No, I've always worked through it", "Other"] },
+    { cat: "Experience", q: "What's a sexual mistake you've genuinely learned from?", opts: ["Moving too fast with the wrong person", "Not communicating what I actually wanted", "Ignoring a red flag because the chemistry was good", "Other"] },
+    { cat: "Experience", q: "Have you ever been in an ongoing situationship?", opts: ["Yes — been there done that, never again", "Yes and I'd honestly do it again", "No, not my style at all", "Other"] },
+    { cat: "Dealbreakers", q: "Absolute hard no in the bedroom?", opts: ["Anything involving pain I didn't agree to", "Filming without explicit consent", "Anything degrading I haven't approved", "Other"] },
+    { cat: "Dealbreakers", q: "If the sex is bad, is it a dealbreaker?", opts: ["Yes — physical compatibility is required", "I'd give it real time to improve", "No, everything else matters more to me", "Other"] },
+    { cat: "Dealbreakers", q: "Partner wants sex way more than you — dealbreaker?", opts: ["Yes — that mismatch is too hard long term", "I'd communicate and try to meet in the middle", "I could work around it", "Other"] },
+    { cat: "Dealbreakers", q: "Partner wants sex way less than you — dealbreaker?", opts: ["Yes — I have needs that matter", "I'd communicate and try to align", "I could manage with real effort", "Other"] },
+    { cat: "Dealbreakers", q: "Fastest way to kill the mood instantly?", opts: ["Bad hygiene", "Being on your phone", "Saying the wrong name", "Other"] },
+    { cat: "Dealbreakers", q: "Selfish in bed — immediate dealbreaker?", opts: ["Yes, I'm completely out", "I'd give one chance to correct it", "No, I'd just communicate it directly", "Other"] },
+    { cat: "Dealbreakers", q: "Open relationships — something you'd ever consider?", opts: ["Yes, genuinely open to it", "In theory maybe, in practice no", "Absolutely not, ever", "Other"] },
+    { cat: "Dealbreakers", q: "Frequency vs quality — what matters more to you?", opts: ["Frequency — consistency is everything", "Quality — one great time beats five mediocre ones", "Both equally, don't make me choose", "Other"] },
+    { cat: "Dealbreakers", q: "Would you stay in a relationship with great chemistry but no emotional connection?", opts: ["Honestly yes, for a while at least", "No, I need both", "Depends how great the chemistry actually is", "Other"] },
+    { cat: "Dealbreakers", q: "Would you stay in a relationship with great emotional connection but zero physical chemistry?", opts: ["Yes — connection is everything to me", "No — I need both to stay", "I'd try but it would eventually break me", "Other"] },
+    { cat: "Compatibility", q: "How important is physical attraction from the very start?", opts: ["Critical — it has to be there immediately", "It grows with emotional connection for me", "Somewhere in between", "Other"] },
+    { cat: "Compatibility", q: "Can great sex save a struggling relationship?", opts: ["For a while, absolutely yes", "No — it just delays the inevitable", "Depends entirely on why it's struggling", "Other"] },
+    { cat: "Compatibility", q: "Does passion naturally fade or do people let it fade?", opts: ["It naturally fades — just biology", "People stop trying and that's what kills it", "It actually deepens if you put in the work", "Other"] },
+    { cat: "Compatibility", q: "Intimacy to you means:", opts: ["Mostly physical — presence and touch", "Mostly emotional — being truly seen", "Both, completely inseparable", "Other"] },
+    { cat: "Compatibility", q: "How soon is too soon to sleep with someone you're dating?", opts: ["There is no too soon if the vibe is right", "A few dates minimum", "I need emotional connection established first", "Other"] },
+    { cat: "Compatibility", q: "Do you have to be in love to have the absolute best sex?", opts: ["Yes — emotion unlocks a completely different level", "No — raw chemistry is chemistry", "The best I've had involved both", "Other"] },
+    { cat: "Compatibility", q: "What do you bring to the table physically?", opts: ["Energy and genuine enthusiasm", "Technique and attention to detail", "Presence and emotional intensity", "Other"] },
+    { cat: "Turn Ons & Offs", q: "Biggest physical turn-on?", opts: ["Eyes and sustained eye contact", "Hands — always the hands", "Voice and the way they talk", "Other"] },
+    { cat: "Turn Ons & Offs", q: "Biggest non-physical turn-on?", opts: ["Confidence — not arrogance", "Intelligence and sharp wit", "How they make me feel completely seen", "Other"] },
+    { cat: "Turn Ons & Offs", q: "Biggest turn-off?", opts: ["Bad hygiene, no exceptions", "Selfish in bed", "Won't communicate what they want", "Other"] },
+    { cat: "Turn Ons & Offs", q: "Does the way someone smells matter to you?", opts: ["Extremely — pheromones are completely real", "Yes, hygiene is a major factor", "Not really a factor for me", "Other"] },
+    { cat: "Turn Ons & Offs", q: "Does ambition factor into attraction for you?", opts: ["Yes, very attractive to me", "Only if it doesn't completely consume them", "Not really — I care about other things", "Other"] },
+    { cat: "Turn Ons & Offs", q: "What's something you find unexpectedly attractive?", opts: ["Competence at something random", "How they treat people who can't do anything for them", "The specific way they laugh", "Other"] },
+    { cat: "Turn Ons & Offs", q: "Does confidence in bed specifically turn you on?", opts: ["Yes — someone who knows what they want is everything", "Somewhat — overconfidence is its own turn-off", "Not particularly, I care more about attentiveness", "Other"] },
+    { cat: "Lifestyle", q: "Solo activity — how often?", opts: ["Regularly — it's legitimate self-care", "Occasionally when the mood hits", "Rarely or never", "Other"] },
+    { cat: "Lifestyle", q: "Sex toys — yay or nay?", opts: ["Yes, love incorporating them", "Open to it with the right person", "Not really my thing", "Other"] },
+    { cat: "Lifestyle", q: "Do you maintain a sex playlist?", opts: ["Yes and it is meticulously curated", "I just vibe with whatever's already on", "Total silence — music is distracting", "Other"] },
+    { cat: "Lifestyle", q: "How important is physical fitness in a partner?", opts: ["Very — attraction requires it for me", "Somewhat, but it's definitely not everything", "Not really a factor", "Other"] },
+    { cat: "Lifestyle", q: "Do people get better at sex with age?", opts: ["Yes — experience and confidence compound over time", "Not necessarily, some people never actually learn", "Only if they're actually paying attention", "Other"] },
+    { cat: "Lifestyle", q: "How do you feel about texting after a hookup?", opts: ["Required — I always follow up", "Depends entirely on the connection", "I tend to go quiet and that's just how it is", "Other"] },
+    { cat: "Lifestyle", q: "Birth control and protection — how do you handle that conversation?", opts: ["I bring it up proactively every time", "I wait for them to bring it up", "In the moment works fine for me", "Other"] },
+    { cat: "Bold Questions", q: "What would it take for tonight to turn into something more?", opts: ["Already there, honestly", "A really good real conversation", "Chemistry would have to hit different", "Other"] },
+    { cat: "Bold Questions", q: "How attracted are you to me right now?", opts: ["Very — that's why I said yes to this date", "Getting there with every answer", "Jury's still out", "Other"] },
+    { cat: "Bold Questions", q: "What are you genuinely great at in bed?", opts: ["Attention to detail — I don't miss things", "Reading my partner without being told", "Energy and stamina", "Other"] },
+    { cat: "Bold Questions", q: "What would you want to happen after this if tonight keeps going well?", opts: ["Keep talking somewhere quieter", "Go back to one of our places", "Make plans for tomorrow and let it build", "Other"] },
+    { cat: "Bold Questions", q: "Have you thought about what I'd be like in bed?", opts: ["Yes — honestly one of the first things I noticed", "It's crossed my mind", "I'm staying focused on the conversation for now", "Other"] },
+    { cat: "Bold Questions", q: "What do you need that most partners haven't known to give you?", opts: ["Patience and genuine attention to detail", "Directness — just tell me exactly what you want", "Emotional safety established before anything physical", "Other"] },
+    { cat: "Bold Questions", q: "If tonight went exactly how you wanted, what would happen?", opts: ["Great conversation that naturally turns into something", "A very late night", "Plans to see each other again very soon", "Other"] },
+    { cat: "Bold Questions", q: "What's the first thing you noticed about me that was that kind of attractive?", opts: ["Eyes and the way you hold eye contact", "Energy and confidence", "The way you carry yourself", "Other"] },
+    { cat: "Bold Questions", q: "Are you more of a fantasy or reality person?", opts: ["Fantasy — I live for the build-up", "Reality — I prefer to act on things", "The fantasy is part of the reality for me", "Other"] },
+    { cat: "In The Moment", q: "If your partner is doing something you don't like during sex, do you say something immediately?", opts: ["Yes — directly and immediately, no hesitation", "I'll redirect physically without saying it out loud", "I wait until after and bring it up then", "Other"] },
+    { cat: "In The Moment", q: "How blunt are you about it when you do say something?", opts: ["Very blunt — I say exactly what I mean", "Direct but I try to soften it a little", "I hint at it and hope they catch on", "Other"] },
+    { cat: "In The Moment", q: "What do you prefer your partner do if YOU'RE doing something they don't like?", opts: ["Tell me immediately and directly — don't spare my feelings", "Physically redirect me without making it a moment", "Bring it up after so it doesn't kill the mood", "Other"] },
+    { cat: "In The Moment", q: "If your partner stops you mid-sex to give direction, how do you receive it?", opts: ["Grateful — I want to know, always", "Fine with it, slight ego hit I'll admit", "It throws me off and I need a second", "Other"] },
+    { cat: "In The Moment", q: "Do you check in during sex or just read the room?", opts: ["I ask verbally — I want to make sure", "I read body language and respond to that", "I expect them to speak up if something's off", "Other"] },
+    { cat: "In The Moment", q: "Have you ever stayed quiet about something you didn't like just to avoid the awkwardness?", opts: ["Yes, more times than I'd like to admit", "Once or twice", "No — I always say something", "Other"] },
+    { cat: "In The Moment", q: "How do you prefer feedback to be delivered to you in the moment?", opts: ["Verbal and direct — just say it plainly", "Show me physically what you want instead", "Frame it as what you want more of, not what's wrong", "Other"] },
+    { cat: "In The Moment", q: "After sex, are you open to a debrief about what worked and what didn't?", opts: ["Yes — I genuinely want that conversation", "Only if something was seriously off", "No — what happens in the bedroom stays there", "Other"] },
+  ];
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function genCode() {
+    return Math.random().toString(36).substring(2, 7).toUpperCase();
+  }
+
+  // STATE
+  let state = {
+    screen: 'home',
+    roomCode: '',
+    role: '',
+    myName: '',
+    qCount: 20,
+    currentIdx: 0,
+    selectedOpt: null,
+    otherText: '',
+    submitted: false,
+    room: null,
+  };
+
+  function setState(patch) {
+    state = { ...state, ...patch };
+    render();
+  }
+
+  let roomListener = null;
+  let answerListener = null;
+  let advanceQueued = false;
+
+  function listenToRoom(code) {
+    if (roomListener) roomListener();
+    const roomRef = ref(db, `rooms/${code}`);
+    roomListener = onValue(roomRef, (snapshot) => {
+      const room = snapshot.val();
+      if (!room) return;
+      state.room = room;
+
+      // Guest: detect when host has set up questions and move to question screen
+      if (state.screen === 'waiting_guest' && room.questions) {
+        state.screen = 'question';
+        state.currentIdx = 0;
+        state.submitted = false;
+        state.selectedOpt = null;
+        listenToAnswer(code, 0);
+      }
+
+      // Host: detect guest joined
+      if (state.screen === 'waiting_host' && room.guestName) {
+        state.screen = 'question';
+        state.currentIdx = 0;
+        state.submitted = false;
+        state.selectedOpt = null;
+        listenToAnswer(code, 0);
+      }
+
+      render();
+    });
+  }
+
+  function listenToAnswer(code, idx) {
+    if (answerListener) { answerListener(); answerListener = null; }
+    advanceQueued = false;
+    const ansRef = ref(db, `rooms/${code}/answers/q${idx}`);
+    answerListener = onValue(ansRef, (snapshot) => {
+      const ans = snapshot.val();
+      if (!ans) return;
+      // Update local room answers
+      if (state.room) {
+        if (!state.room.answers) state.room.answers = {};
+        state.room.answers[`q${idx}`] = ans;
+      }
+      // If both answered and not already advancing
+      if (ans.hostAnswer && ans.guestAnswer && !advanceQueued) {
+        advanceQueued = true;
+        render(); // show "both answered" state immediately
+        setTimeout(() => {
+          const totalQ = state.room?.questions?.length || 0;
+          if (idx + 1 >= totalQ) {
+            state.screen = 'reveal';
+          } else {
+            state.currentIdx = idx + 1;
+            state.submitted = false;
+            state.selectedOpt = null;
+            state.otherText = '';
+            listenToAnswer(code, idx + 1);
+          }
+          render();
+        }, 1500);
+      } else {
+        render();
+      }
+    });
+  }
+
+  async function createRoom() {
+    const nameEl = document.getElementById('myName');
+    const name = nameEl ? nameEl.value.trim() : '';
+    if (!name) { showError('Enter your name first'); return; }
+    const code = genCode();
+    const questions = shuffle(ALL_QUESTIONS).slice(0, state.qCount);
+    const roomData = {
+      code,
+      hostName: name,
+      guestName: '',
+      questions,
+      answers: {},
+      createdAt: Date.now(),
+    };
+    await set(ref(db, `rooms/${code}`), roomData);
+    state.myName = name;
+    state.roomCode = code;
+    state.role = 'host';
+    state.room = roomData;
+    state.screen = 'waiting_host';
+    listenToRoom(code);
+    render();
+
+  }
+
+  async function joinRoom() {
+    const nameEl = document.getElementById('myName');
+    const codeEl = document.getElementById('joinCode');
+    const name = nameEl ? nameEl.value.trim() : '';
+    const code = codeEl ? codeEl.value.trim().toUpperCase() : '';
+    if (!name) { showError('Enter your name first'); return; }
+    if (!code) { showError('Enter the room code'); return; }
+    const snapshot = await get(ref(db, `rooms/${code}`));
+    if (!snapshot.exists()) { showError('Room not found. Check the code.'); return; }
+    const room = snapshot.val();
+    if (room.guestName) { showError('Room is already full.'); return; }
+    await update(ref(db, `rooms/${code}`), { guestName: name });
+    state.myName = name;
+    state.roomCode = code;
+    state.role = 'guest';
+    state.room = { ...room, guestName: name };
+    state.screen = 'question';
+    state.currentIdx = 0;
+    state.submitted = false;
+    state.selectedOpt = null;
+    listenToRoom(code);
+    listenToAnswer(code, 0);
+    render();
+  }
+
+  async function submitAnswer() {
+    if (state.selectedOpt === null) return;
+    const room = state.room;
+    const questions = room.questions;
+    const q = questions[state.currentIdx];
+    const optVal = q.opts[state.selectedOpt] === 'Other'
+      ? (state.otherText || '(blank)')
+      : q.opts[state.selectedOpt];
+    const myKey = state.role === 'host' ? 'hostAnswer' : 'guestAnswer';
+    const qKey = `q${state.currentIdx}`;
+    const updateObj = {};
+    updateObj[`answers/${qKey}/${myKey}`] = optVal;
+    updateObj[`answers/${qKey}/question`] = q.q;
+    updateObj[`answers/${qKey}/cat`] = q.cat;
+    await update(ref(db, `rooms/${state.roomCode}`), updateObj);
+    state.submitted = true;
+    // Make sure answer listener is active for this question
+    listenToAnswer(state.roomCode, state.currentIdx);
+    render();
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    if (el) { el.textContent = msg; el.style.display = 'block'; }
+  }
+
+  function setQCount(n) {
+    state.qCount = n;
+    render();
+  }
+
+  function restart() {
+    if (roomListener) roomListener();
+    if (answerListener) answerListener();
+    answerListener = null;
+    advanceQueued = false;
+    state = { screen: 'home', roomCode: '', role: '', myName: '', qCount: 20, currentIdx: 0, selectedOpt: null, otherText: '', submitted: false, room: null };
+    render();
+  }
+
+  function selectOpt(i) {
+    state.selectedOpt = i;
+    render();
+  }
+
+  function render() {
+    const root = document.getElementById('app');
+    root.innerHTML = '';
+
+    const s = state;
+    const room = s.room;
+
+    if (s.screen === 'home') {
+      root.innerHTML = `
+        <div class="splash">
+          <div class="eyebrow">✦ First Date Edition ✦</div>
+          <div class="bigtitle">The <em>Unfiltered</em><br>Quiz</div>
+          <div class="sub">100+ questions. No filter. Each person plays on their own phone. Answers reveal only after you've both locked in.</div>
+          <div class="setup">
+            <input class="inp" id="myName" placeholder="Your name" maxlength="20" />
+            <div class="section-label">Questions</div>
+            <div class="row">
+              ${[20,50,100].map(n => `<button class="cnt-btn ${s.qCount===n?'active':''}" onclick="setQCount(${n})">${n}</button>`).join('')}
+            </div>
+            <div id="errorMsg" class="error" style="display:none"></div>
+            <button class="btn-primary" onclick="createRoom()">Create Room →</button>
+            <div class="divider-text">or join one</div>
+            <div class="row">
+              <input class="inp code-inp" id="joinCode" placeholder="ENTER CODE" maxlength="5" style="text-transform:uppercase;letter-spacing:4px;text-align:center;" />
+              <button class="btn-join" onclick="joinRoom()">Join →</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    else if (s.screen === 'waiting_host') {
+      root.innerHTML = `
+        <div class="splash">
+          <div class="eyebrow">Room Created</div>
+          <div class="bigtitle">Send them<br><em>this code</em></div>
+          <div class="sub">They open this link, enter their name, and type the code below.</div>
+          <div class="code-box">
+            <div class="code-label">Room Code</div>
+            <div class="big-code">${s.roomCode}</div>
+          </div>
+          <div class="waiting-msg"><span class="dot"></span> Waiting for your date to join...</div>
+        </div>`;
+    }
+
+    else if (s.screen === 'waiting_guest') {
+      root.innerHTML = `
+        <div class="splash">
+          <div class="eyebrow">Joined!</div>
+          <div class="bigtitle">You're in.<br><em>Hold tight.</em></div>
+          <div class="sub">Waiting for ${room?.hostName || 'them'} to start the game...</div>
+          <div class="waiting-msg"><span class="dot"></span> Connecting...</div>
+        </div>`;
+    }
+
+    else if (s.screen === 'question') {
+      const questions = room?.questions || [];
+      const q = questions[s.currentIdx];
+      if (!q) return;
+      const total = questions.length;
+      const progress = (s.currentIdx / total) * 100;
+      const myKey = s.role === 'host' ? 'hostAnswer' : 'guestAnswer';
+      const otherKey = s.role === 'host' ? 'guestAnswer' : 'hostAnswer';
+      const ans = room?.answers?.[`q${s.currentIdx}`];
+      const iAnswered = !!(ans?.[myKey]);
+      const theyAnswered = !!(ans?.[otherKey]);
+      const otherName = s.role === 'host' ? room?.guestName : room?.hostName;
+      const labels = ['A','B','C','D'];
+
+      root.innerHTML = `
+        <div class="quiz-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+          <div class="quiz-meta">
+            <div class="q-counter">Q ${s.currentIdx+1} / ${total}</div>
+            <div class="cat-tag">${q.cat}</div>
+          </div>
+          <div class="question-card">
+            <div class="q-text">${q.q}</div>
+            ${!s.submitted ? `
+              <div class="options">
+                ${q.opts.map((opt,i) => `
+                  <button class="opt-btn ${s.selectedOpt===i?'selected':''}" onclick="selectOpt(${i})">
+                    <span class="opt-label">${labels[i]}</span>
+                    <span>${opt === 'Other' ? 'Other:' : opt}</span>
+                  </button>
+                  ${opt === 'Other' && s.selectedOpt === i ? `<input class="other-inp" id="otherInp" placeholder="write it in..." value="${s.otherText}" oninput="state.otherText=this.value" onclick="event.stopPropagation()" />` : ''}
+                `).join('')}
+              </div>
+              <button class="btn-primary ${s.selectedOpt===null?'disabled':''}" onclick="submitAnswer()">Lock In My Answer →</button>
+            ` : `
+              <div class="waiting-card">
+                <div class="check">✓</div>
+                <div class="locked-msg">YOUR ANSWER IS LOCKED IN</div>
+                ${!theyAnswered
+                  ? `<div class="waiting-msg"><span class="dot"></span> Waiting for ${otherName || 'them'}...</div>`
+                  : `<div class="both-msg">Both answered! Moving on...</div>`
+                }
+              </div>
+            `}
+          </div>
+        </div>`;
+    }
+
+    else if (s.screen === 'reveal') {
+      const answers = room?.answers || {};
+      const hostName = room?.hostName || 'Host';
+      const guestName = room?.guestName || 'Guest';
+      let matches = 0, total = 0;
+      const bycat = {};
+      Object.values(answers).forEach(a => {
+        if (!a.question) return;
+        if (!bycat[a.cat]) bycat[a.cat] = [];
+        bycat[a.cat].push(a);
+        if (a.hostAnswer && a.guestAnswer) {
+          total++;
+          if (a.hostAnswer === a.guestAnswer) matches++;
+        }
+      });
+      const pct = total > 0 ? Math.round((matches/total)*100) : null;
+      const verdicts = [[80,"Dangerously compatible. 🔥"],[60,"More in common than most. Worth exploring."],[40,"Some overlap. The differences could be fun."],[0,"Opposites attract — or this is a warning sign."]];
+      const verdict = pct !== null ? verdicts.find(([min]) => pct >= min)?.[1] : '';
+
+      root.innerHTML = `
+        <div class="reveal-wrap">
+          <div class="reveal-header">
+            <div class="eyebrow">✦ Results ✦</div>
+            <div class="bigtitle">Here's What<br><em>You Found Out</em></div>
+          </div>
+          <div class="score-card">
+            <div class="score-num">${pct !== null ? pct+'%' : '—'}</div>
+            <div class="score-label">Compatibility Score</div>
+            <div class="score-verdict">${verdict}</div>
+          </div>
+          ${Object.entries(bycat).map(([cat, items]) => `
+            <div class="reveal-section">
+              <div class="reveal-cat">${cat}</div>
+              ${items.map(a => `
+                <div class="reveal-item">
+                  <div class="reveal-q">${a.question}</div>
+                  <div class="reveal-answers">
+                    ${a.hostAnswer ? `<div class="ans-box host"><div class="ans-name host-name">${hostName}</div><div class="ans-val">${a.hostAnswer}</div></div>` : ''}
+                    ${a.guestAnswer ? `<div class="ans-box guest"><div class="ans-name guest-name">${guestName}</div><div class="ans-val">${a.guestAnswer}</div></div>` : ''}
+                  </div>
+                  ${a.hostAnswer && a.guestAnswer ? `<div class="match-badge ${a.hostAnswer===a.guestAnswer?'match':'no-match'}">${a.hostAnswer===a.guestAnswer?'✓ Match':'✗ Different'}</div>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          `).join('')}
+          <button class="btn-secondary" onclick="restart()">Play Again ↺</button>
+        </div>`;
+    }
+  }
+
+  // Expose to global
+  window.createRoom = createRoom;
+  window.joinRoom = joinRoom;
+  window.submitAnswer = submitAnswer;
+  window.selectOpt = selectOpt;
+  window.setQCount = setQCount;
+  window.restart = restart;
+  window.state = state;
+
+  render();
+</script>
+<style>
+  :root {
+    --bg: #0c0a10;
+    --card: #16121c;
+    --accent: #e8456a;
+    --accent2: #ff8fa3;
+    --gold: #f0c060;
+    --text: #f0eaf4;
+    --muted: #6a5a74;
+    --border: #2a1f35;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(232,69,106,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 80%, rgba(240,192,96,0.05) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  #app { width: 100%; max-width: 500px; position: relative; z-index: 1; }
+  .splash, .quiz-wrap, .reveal-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 28px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+  }
+  .reveal-wrap { max-width: 560px; }
+  .eyebrow { font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .bigtitle { font-family: 'Playfair Display', serif; font-size: clamp(28px,7vw,44px); line-height: 1.15; font-style: italic; margin-bottom: 12px; }
+  .bigtitle em { color: var(--accent); }
+  .sub { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 28px; }
+  .setup { display: flex; flex-direction: column; gap: 12px; }
+  .section-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .inp {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 16px; color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 13px; outline: none;
+  }
+  .inp:focus { border-color: var(--accent); }
+  .inp::placeholder { color: var(--muted); }
+  .row { display: flex; gap: 8px; }
+  .cnt-btn {
+    flex: 1; background: transparent; border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px; color: var(--muted);
+    font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cnt-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(232,69,106,0.1); }
+  .btn-primary {
+    width: 100%; background: var(--accent); border: none; border-radius: 10px;
+    padding: 15px; color: white; font-family: 'DM Mono', monospace;
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary:hover { background: #f0617d; }
+  .btn-primary.disabled { opacity: 0.4; cursor: default; }
+  .btn-join {
+    background: transparent; border: 1px solid var(--border); border-radius: 10px;
+    padding: 13px 20px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.15s;
+  }
+  .btn-join:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-secondary {
+    width: 100%; background: transparent; border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; color: var(--muted);
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+    margin-top: 16px; transition: all 0.15s;
+  }
+  .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+  .divider-text { text-align: center; font-size: 11px; color: var(--muted); }
+  .error { color: #ff6b6b; font-size: 12px; text-align: center; }
+  .code-inp { flex: 1; }
+  .code-box {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px; text-align: center; margin-bottom: 20px;
+  }
+  .code-label { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .big-code { font-family: 'Playfair Display', serif; font-size: 52px; font-style: italic; color: var(--gold); letter-spacing: 8px; }
+  .waiting-msg { text-align: center; font-size: 12px; color: var(--muted); padding: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 6px; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 24px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--gold)); border-radius: 2px; transition: width 0.4s; }
+  .quiz-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .q-counter { font-size: 11px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+  .cat-tag { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); border: 1px solid rgba(232,69,106,0.3); border-radius: 20px; padding: 3px 10px; }
+  .question-card {}
+  .q-text { font-family: 'Playfair Display', serif; font-size: clamp(16px,4vw,22px); line-height: 1.4; font-style: italic; margin-bottom: 22px; }
+  .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .opt-btn {
+    background: transparent; border: 1px solid var(--border); border-radius: 10px;
+    padding: 13px 16px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 12px; text-align: left; cursor: pointer; display: flex;
+    gap: 12px; line-height: 1.5; transition: all 0.15s;
+  }
+  .opt-btn:hover { border-color: var(--accent); background: rgba(232,69,106,0.06); }
+  .opt-btn.selected { border-color: var(--accent); background: rgba(232,69,106,0.12); color: var(--accent2); }
+  .opt-label { color: var(--accent); min-width: 16px; flex-shrink: 0; }
+  .other-inp {
+    width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--gold);
+    color: var(--gold); font-family: 'DM Mono', monospace; font-size: 12px;
+    padding: 6px 0; outline: none; margin-bottom: 8px;
+  }
+  .other-inp::placeholder { color: var(--muted); }
+  .waiting-card { text-align: center; padding: 28px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
+  .check { font-size: 28px; margin-bottom: 8px; }
+  .locked-msg { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .both-msg { font-size: 12px; color: #50e3a4; }
+  .reveal-header { text-align: center; margin-bottom: 24px; }
+  .score-card { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 28px; text-align: center; margin-bottom: 28px; }
+  .score-num { font-family: 'Playfair Display', serif; font-size: 64px; font-style: italic; background: linear-gradient(135deg, var(--accent), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .score-label { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .score-verdict { font-family: 'Playfair Display', serif; font-size: 18px; font-style: italic; }
+  .reveal-section { margin-bottom: 24px; }
+  .reveal-cat { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .reveal-item { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 10px; }
+  .reveal-q { font-family: 'Playfair Display', serif; font-size: 14px; font-style: italic; color: var(--muted); margin-bottom: 12px; }
+  .reveal-answers { display: flex; gap: 10px; flex-wrap: wrap; }
+  .ans-box { flex: 1; min-width: 110px; border-radius: 8px; padding: 10px 12px; }
+  .ans-box.host { background: rgba(232,69,106,0.08); border: 1px solid rgba(232,69,106,0.15); }
+  .ans-box.guest { background: rgba(240,192,96,0.08); border: 1px solid rgba(240,192,96,0.15); }
+  .ans-name { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+  .host-name { color: var(--accent); }
+  .guest-name { color: var(--gold); }
+  .ans-val { font-size: 12px; line-height: 1.4; }
+  .match-badge { display: inline-block; font-size: 10px; letter-spacing: 1px; padding: 3px 10px; border-radius: 20px; margin-top: 10px; }
+  .match-badge.match { background: rgba(80,227,164,0.1); color: #50e3a4; border: 1px solid rgba(80,227,164,0.2); }
+  .match-badge.no-match { background: rgba(232,69,106,0.1); color: var(--accent2); border: 1px solid rgba(232,69,106,0.2); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+</body>
+</html>
