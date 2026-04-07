@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Type Theory — MBTI Compatibility</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0a0a;
+    --bg2:#141210;
+    --gold:#c9a961;
+    --gold-dim:#8a7440;
+    --gold-bright:#e8c987;
+    --ink:#f4f1ea;
+    --ink-dim:#a8a39a;
+    --line:rgba(201,169,97,0.2);
+    --line-bright:rgba(201,169,97,0.5);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Cormorant Garamond',serif;min-height:100vh;-webkit-font-smoothing:antialiased;}
+  body{
+    background:
+      radial-gradient(ellipse at top, rgba(201,169,97,0.08), transparent 60%),
+      radial-gradient(ellipse at bottom, rgba(201,169,97,0.04), transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+    opacity:0.06;mix-blend-mode:overlay;z-index:1;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:32px 24px 60px;position:relative;z-index:2;}
+  .screen{display:none;animation:fadeIn .6s ease;}
+  .screen.active{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  /* HEADER */
+  .brand{text-align:center;margin-bottom:40px;}
+  .brand-mark{
+    display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.4em;
+    color:var(--gold);text-transform:uppercase;padding:6px 14px;border:1px solid var(--line);
+    border-radius:2px;margin-bottom:20px;
+  }
+  .brand-title{
+    font-size:48px;font-weight:500;letter-spacing:-0.02em;line-height:1;
+    background:linear-gradient(180deg,var(--ink) 0%,var(--gold-bright) 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .brand-title em{font-style:italic;font-weight:400;color:var(--gold);-webkit-text-fill-color:var(--gold);}
+  .brand-sub{font-size:15px;color:var(--ink-dim);margin-top:10px;font-style:italic;letter-spacing:0.02em;}
+  .brand-rule{width:60px;height:1px;background:var(--gold);margin:20px auto;opacity:0.6;}
+
+  /* INPUTS / BUTTONS */
+  .field{margin-bottom:18px;}
+  .field label{
+    display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.2em;
+    color:var(--gold-dim);text-transform:uppercase;margin-bottom:8px;
+  }
+  input[type=text]{
+    width:100%;background:rgba(255,255,255,0.02);border:1px solid var(--line);
+    color:var(--ink);padding:14px 16px;font-family:'Cormorant Garamond',serif;
+    font-size:18px;border-radius:2px;transition:all .3s;letter-spacing:0.02em;
+  }
+  input[type=text]:focus{outline:none;border-color:var(--gold);background:rgba(201,169,97,0.05);}
+  input[type=text]::placeholder{color:var(--ink-dim);font-style:italic;}
+
+  button{
+    width:100%;background:var(--gold);color:var(--bg);border:none;
+    padding:15px 20px;font-family:'JetBrains Mono',monospace;font-size:11px;
+    letter-spacing:0.2em;text-transform:uppercase;cursor:pointer;
+    border-radius:2px;transition:all .3s;font-weight:500;margin-top:8px;
+  }
+  button:hover{background:var(--gold-bright);transform:translateY(-1px);box-shadow:0 8px 24px rgba(201,169,97,0.25);}
+  button:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+  button.ghost{background:transparent;color:var(--gold);border:1px solid var(--gold);}
+  button.ghost:hover{background:rgba(201,169,97,0.08);}
+
+  .divider{display:flex;align-items:center;gap:14px;margin:28px 0;color:var(--gold-dim);
+    font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.3em;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
+
+  /* LOBBY */
+  .room-display{
+    background:rgba(201,169,97,0.06);border:1px solid var(--line-bright);
+    padding:28px;border-radius:2px;text-align:center;margin-bottom:24px;
+  }
+  .room-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.3em;
+    color:var(--gold-dim);text-transform:uppercase;margin-bottom:10px;}
+  .room-code{font-size:42px;letter-spacing:0.3em;color:var(--gold-bright);font-weight:500;}
+  .waiting{color:var(--ink-dim);font-style:italic;text-align:center;margin-top:14px;font-size:15px;}
+  .waiting .dot{display:inline-block;animation:blink 1.4s infinite;}
+  .waiting .dot:nth-child(2){animation-delay:.2s;}
+  .waiting .dot:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:0.2;}40%{opacity:1;}}
+
+  /* QUIZ */
+  .progress-wrap{margin-bottom:32px;}
+  .progress-meta{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;
+    font-size:10px;letter-spacing:0.2em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:10px;}
+  .progress-bar{height:1px;background:var(--line);position:relative;overflow:hidden;}
+  .progress-fill{position:absolute;inset:0;background:var(--gold);width:0;transition:width .5s ease;}
+  .partner-status{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;
+    color:var(--ink-dim);text-align:center;margin-top:14px;text-transform:uppercase;}
+  .partner-status .live{color:var(--gold);}
+
+  .question-box{
+    background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0));
+    border:1px solid var(--line);padding:36px 28px;border-radius:2px;margin-bottom:24px;
+  }
+  .q-num{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.25em;
+    color:var(--gold);text-transform:uppercase;margin-bottom:16px;}
+  .q-prompt{font-size:22px;line-height:1.4;color:var(--ink);margin-bottom:8px;font-weight:400;}
+
+  .choices{display:flex;flex-direction:column;gap:12px;}
+  .choice{
+    background:rgba(255,255,255,0.02);border:1px solid var(--line);
+    padding:18px 22px;border-radius:2px;cursor:pointer;transition:all .25s;
+    font-size:18px;color:var(--ink);text-align:left;font-family:'Cormorant Garamond',serif;
+    line-height:1.4;letter-spacing:0.01em;
+  }
+  .choice:hover{border-color:var(--gold);background:rgba(201,169,97,0.05);transform:translateX(2px);}
+  .choice.selected{border-color:var(--gold-bright);background:rgba(201,169,97,0.1);color:var(--gold-bright);}
+  .choice .marker{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold-dim);
+    margin-right:12px;letter-spacing:0.1em;}
+
+  /* WAITING SCREEN */
+  .wait-card{
+    text-align:center;padding:60px 24px;border:1px solid var(--line);
+    border-radius:2px;background:rgba(255,255,255,0.01);
+  }
+  .wait-card h3{font-size:32px;margin-bottom:12px;color:var(--gold-bright);}
+  .wait-card p{color:var(--ink-dim);font-size:17px;margin-bottom:24px;font-style:italic;}
+  .pulse{width:8px;height:8px;border-radius:50%;background:var(--gold);
+    margin:0 auto;animation:pulse 1.6s ease infinite;}
+  @keyframes pulse{0%,100%{opacity:0.3;transform:scale(1);}50%{opacity:1;transform:scale(1.4);}}
+
+  /* RESULTS */
+  .results-header{text-align:center;margin-bottom:36px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.3em;
+    color:var(--gold);text-transform:uppercase;margin-bottom:12px;}
+  .results-title{font-size:42px;font-weight:500;color:var(--ink);letter-spacing:-0.02em;}
+  .results-title em{font-style:italic;color:var(--gold);}
+
+  .player-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;}
+  @media(max-width:520px){.player-cards{grid-template-columns:1fr;}}
+  .player-card{
+    background:linear-gradient(180deg,rgba(201,169,97,0.06),rgba(201,169,97,0.01));
+    border:1px solid var(--line-bright);padding:24px 20px;border-radius:2px;text-align:center;
+  }
+  .player-card-name{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.2em;
+    color:var(--gold-dim);text-transform:uppercase;margin-bottom:14px;}
+  .player-card-type{font-size:48px;font-weight:500;letter-spacing:0.06em;color:var(--gold-bright);
+    line-height:1;margin-bottom:10px;}
+  .player-card-typename{font-size:18px;font-style:italic;color:var(--ink);margin-bottom:12px;}
+  .player-card-blurb{font-size:14px;color:var(--ink-dim);line-height:1.5;}
+
+  .compat-block{
+    background:rgba(201,169,97,0.05);border:1px solid var(--line-bright);
+    padding:32px 24px;border-radius:2px;text-align:center;margin-bottom:24px;
+  }
+  .compat-vibe{font-size:36px;color:var(--gold-bright);margin-bottom:8px;font-weight:500;letter-spacing:-0.01em;}
+  .compat-match{font-size:16px;color:var(--ink-dim);font-style:italic;}
+
+  .compat-notes{display:flex;flex-direction:column;gap:14px;margin-bottom:32px;}
+  .compat-note{
+    border-left:2px solid var(--gold);padding:14px 18px;background:rgba(255,255,255,0.02);
+    font-size:16px;line-height:1.55;color:var(--ink);
+  }
+  .compat-note strong{color:var(--gold-bright);font-weight:500;font-style:italic;}
+
+  .results-actions{display:flex;flex-direction:column;gap:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HOME -->
+  <div id="home" class="screen active">
+    <div class="brand">
+      <span class="brand-mark">Volume One · Compatibility</span>
+      <h1 class="brand-title">Type <em>Theory</em></h1>
+      <div class="brand-rule"></div>
+      <p class="brand-sub">A two-player study in personality.</p>
+    </div>
+    <div class="field">
+      <label>Your Name</label>
+      <input type="text" id="hostName" placeholder="Enter your name">
+    </div>
+    <button onclick="createRoom()">Create Room</button>
+    <div class="divider">OR</div>
+    <div class="field">
+      <label>Your Name</label>
+      <input type="text" id="joinName" placeholder="Enter your name">
+    </div>
+    <div class="field">
+      <label>Room Code</label>
+      <input type="text" id="joinCode" placeholder="5-letter code" maxlength="5" style="text-transform:uppercase;letter-spacing:0.2em;">
+    </div>
+    <button class="ghost" onclick="joinRoom()">Join Room</button>
+  </div>
+
+  <!-- LOBBY -->
+  <div id="lobby" class="screen">
+    <div class="brand">
+      <span class="brand-mark">Awaiting Player Two</span>
+      <h1 class="brand-title">The <em>Room</em></h1>
+      <div class="brand-rule"></div>
+    </div>
+    <div class="room-display">
+      <div class="room-label">Share This Code</div>
+      <div class="room-code" id="roomCodeDisplay"></div>
+    </div>
+    <p class="waiting">Waiting for partner<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></p>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz" class="screen">
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span id="qProgressText">Question 01 / 70</span>
+        <span id="qDimension">Energy</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="partner-status" id="partnerStatus">Partner: 0 / 70</div>
+    </div>
+    <div class="question-box">
+      <div class="q-num" id="qLabel">Q · 01</div>
+      <div class="q-prompt" id="qPrompt"></div>
+    </div>
+    <div class="choices" id="choices"></div>
+  </div>
+
+  <!-- WAITING -->
+  <div id="waiting" class="screen">
+    <div class="wait-card">
+      <h3>Done.</h3>
+      <p>Waiting for your partner to finish.<br>Results unlock the moment they're done.</p>
+      <div class="pulse"></div>
+      <p class="partner-status" id="waitStatus" style="margin-top:24px;">Partner: 0 / 70</p>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results" class="screen">
+    <div class="results-header">
+      <div class="eyebrow">YOUR RESULTS</div>
+      <h2 class="results-title">Type <em>Theory</em></h2>
+    </div>
+    <div class="player-cards">
+      <div class="player-card">
+        <div class="player-card-name" id="p1Name"></div>
+        <div class="player-card-type" id="p1Type"></div>
+        <div class="player-card-typename" id="p1TypeName"></div>
+        <div class="player-card-blurb" id="p1Blurb"></div>
+      </div>
+      <div class="player-card">
+        <div class="player-card-name" id="p2Name"></div>
+        <div class="player-card-type" id="p2Type"></div>
+        <div class="player-card-typename" id="p2TypeName"></div>
+        <div class="player-card-blurb" id="p2Blurb"></div>
+      </div>
+    </div>
+    <div class="compat-block">
+      <div class="eyebrow" style="margin-bottom:12px;">COMPATIBILITY</div>
+      <div class="compat-vibe" id="compatVibe"></div>
+      <div class="compat-match" id="compatMatch"></div>
+    </div>
+    <div class="compat-notes" id="compatNotes"></div>
+    <div class="results-actions">
+      <button onclick="downloadPDF()">Download PDF Report</button>
+      <button class="ghost" onclick="resetGame()">New Game</button>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, get, update, onValue, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyALDXdMAxe-KM2HogO887U13fkz7h1aM5A",
+    authDomain: "date-quiz-5a158.firebaseapp.com",
+    databaseURL: "https://date-quiz-5a158-default-rtdb.firebaseio.com",
+    projectId: "date-quiz-5a158",
+    storageBucket: "date-quiz-5a158.firebasestorage.app",
+    messagingSenderId: "393791444370",
+    appId: "1:393791444370:web:0d33fd90645558dec15d4b"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // ============================================================
+  // 70-question MBTI inventory (forced choice). dim: dichotomy. side: which letter A scores toward.
+  // ============================================================
+  const QUESTIONS = [
+    // Energy (E/I) - 18
+    {dim:'EI',side:'E',a:"At a party, I introduce myself to many people.",b:"I wait for others to come to me."},
+    {dim:'EI',side:'I',a:"I need a lot of social time to feel charged.",b:"I recharge best alone."},
+    {dim:'EI',side:'E',a:"I think out loud and figure things out as I talk.",b:"I think things through silently first."},
+    {dim:'EI',side:'I',a:"After a long day, I need quiet to recover.",b:"After a long day, I want to go out."},
+    {dim:'EI',side:'E',a:"I prefer working in groups.",b:"I prefer working alone."},
+    {dim:'EI',side:'E',a:"People would describe me as outgoing.",b:"People would describe me as reserved."},
+    {dim:'EI',side:'I',a:"I have a small circle of close friends.",b:"I have a wide circle of friends."},
+    {dim:'EI',side:'E',a:"Silence in conversation makes me uncomfortable.",b:"Silence in conversation feels fine."},
+    {dim:'EI',side:'I',a:"Too much stimulation drains me.",b:"I crave a lot going on around me."},
+    {dim:'EI',side:'E',a:"I jump into new social situations easily.",b:"I observe before joining in."},
+    {dim:'EI',side:'I',a:"I prefer one-on-one conversations.",b:"I prefer group conversations."},
+    {dim:'EI',side:'E',a:"I'd rather be doing something with people.",b:"I'd rather be doing something alone."},
+    {dim:'EI',side:'I',a:"I share my thoughts only after I've fully formed them.",b:"I share my thoughts as they come."},
+    {dim:'EI',side:'E',a:"I'm energized by busy environments.",b:"I'm drained by busy environments."},
+    {dim:'EI',side:'I',a:"My best ideas come when I'm alone.",b:"My best ideas come when I'm bouncing them off others."},
+    {dim:'EI',side:'E',a:"I'd choose a party over a quiet night in.",b:"I'd choose a quiet night in over a party."},
+    {dim:'EI',side:'I',a:"I find small talk exhausting.",b:"I find small talk enjoyable."},
+    {dim:'EI',side:'E',a:"I'd rather speak than write.",b:"I'd rather write than speak."},
+
+    // Information (S/N) - 18
+    {dim:'SN',side:'S',a:"I trust facts and direct experience.",b:"I trust patterns and possibilities."},
+    {dim:'SN',side:'N',a:"I'm more interested in what could be.",b:"I'm more interested in what is."},
+    {dim:'SN',side:'S',a:"I like specific, concrete instructions.",b:"I like the big picture and figure out the details."},
+    {dim:'SN',side:'N',a:"I focus on the future and what's possible.",b:"I focus on the present and what's real."},
+    {dim:'SN',side:'S',a:"I prefer practical solutions.",b:"I prefer creative solutions."},
+    {dim:'SN',side:'N',a:"I notice patterns and connections others miss.",b:"I notice details and facts others miss."},
+    {dim:'SN',side:'S',a:"I'd rather stick with what I know works.",b:"I'd rather try something new."},
+    {dim:'SN',side:'N',a:"I get bored with routine quickly.",b:"I find comfort in routine."},
+    {dim:'SN',side:'S',a:"I describe things literally.",b:"I describe things with metaphors."},
+    {dim:'SN',side:'N',a:"I'm drawn to theories and ideas.",b:"I'm drawn to facts and applications."},
+    {dim:'SN',side:'S',a:"Common sense matters more than imagination.",b:"Imagination matters more than common sense."},
+    {dim:'SN',side:'N',a:"I read between the lines.",b:"I take things at face value."},
+    {dim:'SN',side:'S',a:"I trust experience over theory.",b:"I trust theory over experience."},
+    {dim:'SN',side:'N',a:"I daydream often.",b:"I stay focused on what's in front of me."},
+    {dim:'SN',side:'S',a:"I'm a hands-on learner.",b:"I'm a concept-first learner."},
+    {dim:'SN',side:'N',a:"I love brainstorming wild ideas.",b:"I prefer narrowing down to what's doable."},
+    {dim:'SN',side:'S',a:"Tradition matters to me.",b:"Innovation matters more than tradition."},
+    {dim:'SN',side:'N',a:"I'd rather invent something new.",b:"I'd rather perfect something existing."},
+
+    // Decisions (T/F) - 17
+    {dim:'TF',side:'T',a:"I make decisions with my head.",b:"I make decisions with my heart."},
+    {dim:'TF',side:'F',a:"Harmony is more important than being right.",b:"Being right is more important than harmony."},
+    {dim:'TF',side:'T',a:"I value logic over feelings.",b:"I value feelings over logic."},
+    {dim:'TF',side:'F',a:"I take things personally.",b:"I don't take things personally."},
+    {dim:'TF',side:'T',a:"I'd rather be honest than tactful.",b:"I'd rather be tactful than blunt."},
+    {dim:'TF',side:'F',a:"I'm moved easily by other people's emotions.",b:"I stay emotionally steady around others' feelings."},
+    {dim:'TF',side:'T',a:"I can debate without getting upset.",b:"Debates feel like personal attacks to me."},
+    {dim:'TF',side:'F',a:"I lead with empathy.",b:"I lead with analysis."},
+    {dim:'TF',side:'T',a:"Fairness means treating everyone the same.",b:"Fairness means treating each person according to their needs."},
+    {dim:'TF',side:'F',a:"I avoid conflict whenever possible.",b:"I'm fine with conflict if it's productive."},
+    {dim:'TF',side:'T',a:"I notice flaws in arguments quickly.",b:"I notice tension in the room quickly."},
+    {dim:'TF',side:'F',a:"My gut feeling about people is usually right.",b:"My logical read on people is usually right."},
+    {dim:'TF',side:'T',a:"Critique should be direct.",b:"Critique should be gentle."},
+    {dim:'TF',side:'F',a:"I'd rather be kind than correct.",b:"I'd rather be correct than kind."},
+    {dim:'TF',side:'T',a:"I respect competence above warmth.",b:"I respect warmth above competence."},
+    {dim:'TF',side:'F',a:"I cry more easily than most.",b:"I rarely cry."},
+    {dim:'TF',side:'T',a:"I trust principles over circumstances.",b:"I trust circumstances over principles."},
+
+    // Lifestyle (J/P) - 17
+    {dim:'JP',side:'J',a:"I like having things settled and decided.",b:"I like keeping options open."},
+    {dim:'JP',side:'P',a:"I work best with flexibility.",b:"I work best with structure."},
+    {dim:'JP',side:'J',a:"I make lists and check them off.",b:"I figure it out as I go."},
+    {dim:'JP',side:'P',a:"Plans feel restrictive to me.",b:"Plans feel reassuring to me."},
+    {dim:'JP',side:'J',a:"I prefer to finish one thing before starting another.",b:"I prefer to juggle multiple things at once."},
+    {dim:'JP',side:'P',a:"I do my best work under pressure at the last minute.",b:"I do my best work when I start early."},
+    {dim:'JP',side:'J',a:"I like knowing what's going to happen.",b:"I like being surprised."},
+    {dim:'JP',side:'P',a:"I change plans easily.",b:"I stick to plans once made."},
+    {dim:'JP',side:'J',a:"I make decisions quickly and move on.",b:"I keep weighing options."},
+    {dim:'JP',side:'P',a:"Deadlines feel like suggestions.",b:"Deadlines feel non-negotiable."},
+    {dim:'JP',side:'J',a:"My space is usually organized.",b:"My space is usually creatively cluttered."},
+    {dim:'JP',side:'P',a:"I'd rather wing a vacation than over-plan it.",b:"I'd rather plan a vacation in detail."},
+    {dim:'JP',side:'J',a:"Structure helps me thrive.",b:"Structure stifles me."},
+    {dim:'JP',side:'P',a:"I leave things open-ended on purpose.",b:"I close loops as fast as I can."},
+    {dim:'JP',side:'J',a:"I make plans with friends well in advance.",b:"I make plans with friends spontaneously."},
+    {dim:'JP',side:'P',a:"Rules are guidelines.",b:"Rules are rules."},
+    {dim:'JP',side:'J',a:"I like checklists.",b:"Checklists feel like a cage."},
+  ];
+
+  const TYPES = {
+    INTJ:{name:"The Architect",blurb:"Strategic, independent, and quietly intense. Sees three moves ahead."},
+    INTP:{name:"The Theorist",blurb:"Curious, analytical, and endlessly questioning. Lives in the mind."},
+    ENTJ:{name:"The Commander",blurb:"Decisive, ambitious, and a natural leader. Built to execute."},
+    ENTP:{name:"The Debater",blurb:"Quick-witted, idea-driven, and allergic to boredom. Born to spar."},
+    INFJ:{name:"The Advocate",blurb:"Soulful, perceptive, and deeply private. Reads people instantly."},
+    INFP:{name:"The Idealist",blurb:"Romantic, values-driven, and vividly inner. Quietly fierce."},
+    ENFJ:{name:"The Protagonist",blurb:"Warm, charismatic, and tuned to others. The room shifts when they enter."},
+    ENFP:{name:"The Campaigner",blurb:"Spirited, expressive, and infectiously alive. Energy in human form."},
+    ISTJ:{name:"The Inspector",blurb:"Steady, dependable, and quietly thorough. The one you can count on."},
+    ISFJ:{name:"The Defender",blurb:"Loyal, attentive, and protective. The keeper of the people they love."},
+    ESTJ:{name:"The Executive",blurb:"Direct, organized, and built to take charge. Gets it done."},
+    ESFJ:{name:"The Provider",blurb:"Warm, social, and devoted to community. The host with the heart."},
+    ISTP:{name:"The Virtuoso",blurb:"Cool, capable, and hands-on. Figures it out by doing it."},
+    ISFP:{name:"The Artist",blurb:"Sensitive, aesthetic, and quietly bold. Lives by feeling."},
+    ESTP:{name:"The Entrepreneur",blurb:"Bold, present, and action-first. Thrives in the moment."},
+    ESFP:{name:"The Performer",blurb:"Vibrant, playful, and impossible to ignore. The party's heart."},
+  };
+
+  let state = {
+    roomCode:null, playerId:null, playerName:null, isHost:false,
+    answers:[], currentQ:0, partnerProgress:0, mySubmitted:false, partnerSubmitted:false,
+    listener:null,
+  };
+
+  // ===== ROUTING =====
+  function show(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ===== ROOM =====
+  function genCode(){return Array.from({length:5},()=>String.fromCharCode(65+Math.floor(Math.random()*26))).join('');}
+
+  window.createRoom = async function(){
+    const name = document.getElementById('hostName').value.trim();
+    if(!name){alert('Enter your name first.');return;}
+    const code = genCode();
+    state.roomCode = code; state.playerId='p1'; state.playerName=name; state.isHost=true;
+    await set(ref(db,`mbti/${code}`),{
+      p1:{name,answers:{},progress:0,submitted:false,type:null},
+      p2:null, status:'waiting', createdAt:Date.now(),
+    });
+    document.getElementById('roomCodeDisplay').textContent=code;
+    show('lobby');
+    listenRoom();
+  };
+
+  window.joinRoom = async function(){
+    const name = document.getElementById('joinName').value.trim();
+    const code = document.getElementById('joinCode').value.trim().toUpperCase();
+    if(!name||!code){alert('Enter your name and the room code.');return;}
+    const snap = await get(ref(db,`mbti/${code}`));
+    if(!snap.exists()){alert('Room not found.');return;}
+    const room = snap.val();
+    if(room.p2){alert('Room is full.');return;}
+    state.roomCode=code; state.playerId='p2'; state.playerName=name; state.isHost=false;
+    await update(ref(db,`mbti/${code}`),{
+      p2:{name,answers:{},progress:0,submitted:false,type:null},
+      status:'playing',
+    });
+    listenRoom();
+    startQuiz();
+  };
+
+  function listenRoom(){
+    const r = ref(db,`mbti/${state.roomCode}`);
+    state.listener = onValue(r,(snap)=>{
+      if(!snap.exists())return;
+      const room = snap.val();
+      if(state.isHost && room.p2 && room.status==='playing'){
+        if(document.getElementById('lobby').classList.contains('active')) startQuiz();
+      }
+      const partnerKey = state.playerId==='p1'?'p2':'p1';
+      const partner = room[partnerKey];
+      if(partner){
+        state.partnerProgress = partner.progress||0;
+        state.partnerSubmitted = !!partner.submitted;
+        updatePartnerStatus();
+      }
+      if(state.mySubmitted && state.partnerSubmitted){
+        showResults(room);
+      }
+    });
+  }
+
+  function updatePartnerStatus(){
+    const txt = state.partnerSubmitted
+      ? `<span class="live">Partner: done ✓</span>`
+      : `Partner: ${state.partnerProgress} / ${QUESTIONS.length}`;
+    const ps=document.getElementById('partnerStatus');if(ps)ps.innerHTML=txt;
+    const ws=document.getElementById('waitStatus');if(ws)ws.innerHTML=txt;
+  }
+
+  // ===== QUIZ =====
+  function startQuiz(){
+    state.currentQ=0; state.answers=new Array(QUESTIONS.length).fill(null);
+    show('quiz'); renderQuestion();
+  }
+
+  function renderQuestion(){
+    const i = state.currentQ; const q = QUESTIONS[i];
+    const dimNames={EI:'Energy',SN:'Information',TF:'Decisions',JP:'Lifestyle'};
+    document.getElementById('qProgressText').textContent=`Question ${String(i+1).padStart(2,'0')} / ${QUESTIONS.length}`;
+    document.getElementById('qDimension').textContent=dimNames[q.dim];
+    document.getElementById('qLabel').textContent=`Q · ${String(i+1).padStart(2,'0')}`;
+    document.getElementById('qPrompt').textContent="Which feels more like you?";
+    document.getElementById('progressFill').style.width=`${(i/QUESTIONS.length)*100}%`;
+    const choices = document.getElementById('choices');
+    choices.innerHTML='';
+    [{label:'A',text:q.a},{label:'B',text:q.b}].forEach(c=>{
+      const btn = document.createElement('button');
+      btn.className='choice'; btn.type='button';
+      btn.innerHTML=`<span class="marker">${c.label}</span>${c.text}`;
+      btn.onclick=()=>chooseAnswer(c.label);
+      choices.appendChild(btn);
+    });
+  }
+
+  async function chooseAnswer(label){
+    state.answers[state.currentQ]=label;
+    const playerRef = ref(db,`mbti/${state.roomCode}/${state.playerId}`);
+    await update(playerRef,{[`answers/${state.currentQ}`]:label, progress: state.currentQ+1});
+    state.currentQ++;
+    if(state.currentQ>=QUESTIONS.length){
+      await finishQuiz();
+    } else {
+      renderQuestion();
+    }
+  }
+
+  async function finishQuiz(){
+    const type = computeType(state.answers);
+    state.mySubmitted=true;
+    await update(ref(db,`mbti/${state.roomCode}/${state.playerId}`),{submitted:true,type});
+    show('waiting');
+    updatePartnerStatus();
+  }
+
+  // ===== TYPE COMPUTATION =====
+  function computeType(answers){
+    const tally={E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0};
+    answers.forEach((ans,i)=>{
+      if(!ans)return;
+      const q=QUESTIONS[i];
+      const sideA = q.side;
+      const sideB = q.dim.replace(sideA,'');
+      tally[ans==='A'?sideA:sideB]++;
+    });
+    return (tally.E>=tally.I?'E':'I')+(tally.S>=tally.N?'S':'N')+(tally.T>=tally.F?'T':'F')+(tally.J>=tally.P?'J':'P');
+  }
+
+  // ===== RESULTS =====
+  let lastResults = null;
+  function showResults(room){
+    const p1=room.p1, p2=room.p2;
+    if(!p1?.type||!p2?.type)return;
+    lastResults={p1,p2};
+    document.getElementById('p1Name').textContent=p1.name;
+    document.getElementById('p1Type').textContent=p1.type;
+    document.getElementById('p1TypeName').textContent=TYPES[p1.type]?.name||'';
+    document.getElementById('p1Blurb').textContent=TYPES[p1.type]?.blurb||'';
+    document.getElementById('p2Name').textContent=p2.name;
+    document.getElementById('p2Type').textContent=p2.type;
+    document.getElementById('p2TypeName').textContent=TYPES[p2.type]?.name||'';
+    document.getElementById('p2Blurb').textContent=TYPES[p2.type]?.blurb||'';
+
+    const compat = computeCompat(p1.type,p2.type);
+    document.getElementById('compatVibe').textContent=compat.vibe;
+    document.getElementById('compatMatch').textContent=compat.tagline;
+
+    const notesEl=document.getElementById('compatNotes');
+    notesEl.innerHTML='';
+    compat.notes.forEach(n=>{
+      const d=document.createElement('div');d.className='compat-note';d.innerHTML=n;notesEl.appendChild(d);
+    });
+
+    show('results');
+  }
+
+  function computeCompat(t1,t2){
+    const dims=['EI','SN','TF','JP'];
+    let matches=0;
+    const dimDetail=[];
+    for(let i=0;i<4;i++){
+      const same = t1[i]===t2[i];
+      if(same)matches++;
+      dimDetail.push({i,same,a:t1[i],b:t2[i]});
+    }
+    let vibe,tagline;
+    if(matches===4){vibe="Mirror Match";tagline="Same wiring. You see the world the same way.";}
+    else if(matches===3){vibe="Harmony";tagline="Mostly aligned with one healthy contrast.";}
+    else if(matches===2){vibe="Balance";tagline="Half mirror, half complement. Often the strongest pairings.";}
+    else if(matches===1){vibe="Sparks";tagline="Different wiring, plenty to learn from each other.";}
+    else {vibe="Magnetic Opposites";tagline="Total contrast. Intense chemistry, real work.";}
+
+    const dimNotes={
+      EI:{
+        same_E:"<strong>You're both extroverts.</strong> Expect a loud, social rhythm together — and remember to schedule downtime.",
+        same_I:"<strong>You're both introverts.</strong> Quiet weekends and small circles. You'll never feel pressured to perform.",
+        diff:"<strong>One extrovert, one introvert.</strong> The classic balance. Just respect that one of you recharges in crowds and the other in silence."
+      },
+      SN:{
+        same_S:"<strong>You're both grounded in the real.</strong> Practical, present, and unlikely to get lost in hypotheticals.",
+        same_N:"<strong>You're both big-picture dreamers.</strong> Endless what-ifs and late-night theories. Make sure someone handles the laundry.",
+        diff:"<strong>Realist meets dreamer.</strong> One of you keeps it grounded, the other expands the horizon. Translation matters."
+      },
+      TF:{
+        same_T:"<strong>You both lead with logic.</strong> Decisions get made fast and feelings stay tidy. Don't forget tenderness.",
+        same_F:"<strong>You both lead with feeling.</strong> High empathy, deep emotional fluency. Watch out for over-accommodating each other.",
+        diff:"<strong>Head meets heart.</strong> One of you analyzes, the other feels. The biggest gap to bridge — and the most rewarding."
+      },
+      JP:{
+        same_J:"<strong>You both want a plan.</strong> Calendars synced, decisions made, options closed. Order is your shared love language.",
+        same_P:"<strong>You both want freedom.</strong> Spontaneous and open-ended — just nominate one of you to actually book the flight.",
+        diff:"<strong>Planner meets free spirit.</strong> One of you wants the schedule, the other wants the surprise. Compromise looks like loose plans."
+      }
+    };
+    const notes = dimDetail.map(d=>{
+      if(d.same){
+        const key = `same_${d.a}`;
+        return dimNotes[dims[d.i]][key];
+      } else {
+        return dimNotes[dims[d.i]].diff;
+      }
+    });
+    return {vibe,tagline,notes,matches};
+  }
+
+  // ===== PDF =====
+  window.downloadPDF = function(){
+    if(!lastResults)return;
+    const {p1,p2}=lastResults;
+    const compat=computeCompat(p1.type,p2.type);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'pt',format:'letter'});
+    const W=doc.internal.pageSize.getWidth();
+    const H=doc.internal.pageSize.getHeight();
+    // Background
+    doc.setFillColor(10,10,10);doc.rect(0,0,W,H,'F');
+    // Gold accent line
+    doc.setDrawColor(201,169,97);doc.setLineWidth(0.5);
+    doc.line(50,90,W-50,90);
+    // Header
+    doc.setFont('times','italic');doc.setTextColor(201,169,97);doc.setFontSize(11);
+    doc.text("VOLUME ONE  ·  COMPATIBILITY",W/2,60,{align:'center'});
+    doc.setFont('times','normal');doc.setTextColor(244,241,234);doc.setFontSize(34);
+    doc.text("Type Theory",W/2,130,{align:'center'});
+    doc.setFont('times','italic');doc.setFontSize(13);doc.setTextColor(168,163,154);
+    doc.text("A two-player study in personality.",W/2,155,{align:'center'});
+    doc.line(50,180,W-50,180);
+
+    // Player blocks
+    let y=220;
+    [p1,p2].forEach((p,idx)=>{
+      const t=TYPES[p.type]||{};
+      doc.setFont('times','italic');doc.setFontSize(10);doc.setTextColor(138,116,64);
+      doc.text(p.name.toUpperCase(),60,y);
+      doc.setFont('times','normal');doc.setFontSize(38);doc.setTextColor(232,201,135);
+      doc.text(p.type,60,y+40);
+      doc.setFont('times','italic');doc.setFontSize(15);doc.setTextColor(244,241,234);
+      doc.text(t.name||'',60,y+62);
+      doc.setFont('times','normal');doc.setFontSize(11);doc.setTextColor(168,163,154);
+      const blurbLines = doc.splitTextToSize(t.blurb||'',W-120);
+      doc.text(blurbLines,60,y+82);
+      y += 130;
+      if(idx===0){doc.setDrawColor(201,169,97);doc.setLineWidth(0.3);doc.line(60,y-15,W-60,y-15);}
+    });
+
+    // Compatibility block
+    y += 10;
+    doc.setDrawColor(201,169,97);doc.setLineWidth(0.5);
+    doc.line(50,y,W-50,y);
+    y += 26;
+    doc.setFont('times','italic');doc.setFontSize(10);doc.setTextColor(201,169,97);
+    doc.text("COMPATIBILITY",W/2,y,{align:'center'});
+    y += 30;
+    doc.setFont('times','normal');doc.setFontSize(26);doc.setTextColor(232,201,135);
+    doc.text(compat.vibe,W/2,y,{align:'center'});
+    y += 22;
+    doc.setFont('times','italic');doc.setFontSize(12);doc.setTextColor(168,163,154);
+    doc.text(compat.tagline,W/2,y,{align:'center'});
+    y += 26;
+
+    // Notes (strip HTML tags for PDF)
+    doc.setFont('times','normal');doc.setFontSize(11);doc.setTextColor(244,241,234);
+    compat.notes.forEach(n=>{
+      const plain = n.replace(/<[^>]+>/g,'');
+      const lines = doc.splitTextToSize(plain,W-130);
+      doc.setDrawColor(201,169,97);doc.setLineWidth(1.5);
+      doc.line(55,y-9,55,y+lines.length*13-4);
+      doc.text(lines,65,y);
+      y += lines.length*13 + 10;
+    });
+
+    // Footer
+    doc.setDrawColor(201,169,97);doc.setLineWidth(0.3);
+    doc.line(50,H-60,W-50,H-60);
+    doc.setFont('times','italic');doc.setFontSize(9);doc.setTextColor(138,116,64);
+    doc.text(`Generated ${new Date().toLocaleDateString()}  ·  Type Theory`,W/2,H-40,{align:'center'});
+
+    doc.save(`type-theory-${p1.name}-${p2.name}.pdf`);
+  };
+
+  window.resetGame = function(){
+    if(state.listener)try{off(ref(db,`mbti/${state.roomCode}`));}catch(e){}
+    state = {roomCode:null,playerId:null,playerName:null,isHost:false,answers:[],currentQ:0,partnerProgress:0,mySubmitted:false,partnerSubmitted:false,listener:null};
+    document.getElementById('hostName').value='';
+    document.getElementById('joinName').value='';
+    document.getElementById('joinCode').value='';
+    show('home');
+  };
+</script>
+</body>
+</html>
