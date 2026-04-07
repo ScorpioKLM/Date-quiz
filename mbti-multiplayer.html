@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Compatibility Study</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0a0a;
+    --bg2:#141210;
+    --gold:#c9a961;
+    --gold-dim:#8a7440;
+    --gold-bright:#e8c987;
+    --ink:#f4f1ea;
+    --ink-dim:#a8a39a;
+    --line:rgba(201,169,97,0.2);
+    --line-bright:rgba(201,169,97,0.5);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Cormorant Garamond',serif;min-height:100vh;-webkit-font-smoothing:antialiased;}
+  body{
+    background:
+      radial-gradient(ellipse at top, rgba(201,169,97,0.08), transparent 60%),
+      radial-gradient(ellipse at bottom, rgba(201,169,97,0.04), transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+    opacity:0.06;mix-blend-mode:overlay;z-index:1;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:32px 24px 60px;position:relative;z-index:2;}
+  .screen{display:none;animation:fadeIn .6s ease;}
+  .screen.active{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  .brand{text-align:center;margin-bottom:40px;}
+  .brand-mark{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.4em;color:var(--gold);text-transform:uppercase;padding:6px 14px;border:1px solid var(--line);border-radius:2px;margin-bottom:20px;}
+  .brand-title{font-size:44px;font-weight:500;letter-spacing:-0.02em;line-height:1;background:linear-gradient(180deg,var(--ink) 0%,var(--gold-bright) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .brand-title em{font-style:italic;font-weight:400;color:var(--gold);-webkit-text-fill-color:var(--gold);}
+  .brand-sub{font-size:15px;color:var(--ink-dim);margin-top:10px;font-style:italic;letter-spacing:0.02em;}
+  .brand-rule{width:60px;height:1px;background:var(--gold);margin:20px auto;opacity:0.6;}
+
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:8px;}
+  input[type=text]{width:100%;background:rgba(255,255,255,0.02);border:1px solid var(--line);color:var(--ink);padding:14px 16px;font-family:'Cormorant Garamond',serif;font-size:18px;border-radius:2px;transition:all .3s;letter-spacing:0.02em;}
+  input[type=text]:focus{outline:none;border-color:var(--gold);background:rgba(201,169,97,0.05);}
+  input[type=text]::placeholder{color:var(--ink-dim);font-style:italic;}
+
+  button{width:100%;background:var(--gold);color:var(--bg);border:none;padding:15px 20px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:all .3s;font-weight:500;margin-top:8px;}
+  button:hover{background:var(--gold-bright);transform:translateY(-1px);box-shadow:0 8px 24px rgba(201,169,97,0.25);}
+  button:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+  button.ghost{background:transparent;color:var(--gold);border:1px solid var(--gold);}
+  button.ghost:hover{background:rgba(201,169,97,0.08);}
+
+  .divider{display:flex;align-items:center;gap:14px;margin:28px 0;color:var(--gold-dim);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.3em;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line);}
+
+  .room-display{background:rgba(201,169,97,0.06);border:1px solid var(--line-bright);padding:28px;border-radius:2px;text-align:center;margin-bottom:24px;}
+  .room-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.3em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:10px;}
+  .room-code{font-size:42px;letter-spacing:0.3em;color:var(--gold-bright);font-weight:500;}
+  .waiting{color:var(--ink-dim);font-style:italic;text-align:center;margin-top:14px;font-size:15px;}
+  .waiting .dot{display:inline-block;animation:blink 1.4s infinite;}
+  .waiting .dot:nth-child(2){animation-delay:.2s;}
+  .waiting .dot:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:0.2;}40%{opacity:1;}}
+
+  .progress-wrap{margin-bottom:28px;}
+  .progress-meta{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:10px;}
+  .progress-bar{height:1px;background:var(--line);position:relative;overflow:hidden;}
+  .progress-fill{position:absolute;inset:0;background:var(--gold);width:0;transition:width .5s ease;}
+  .partner-status{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--ink-dim);text-align:center;margin-top:14px;text-transform:uppercase;}
+  .partner-status .live{color:var(--gold);}
+  .section-banner{text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.3em;color:var(--gold);text-transform:uppercase;margin-bottom:16px;padding:8px;background:rgba(201,169,97,0.05);border:1px solid var(--line);border-radius:2px;}
+
+  .question-box{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0));border:1px solid var(--line);padding:32px 24px;border-radius:2px;margin-bottom:24px;}
+  .q-num{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.25em;color:var(--gold);text-transform:uppercase;margin-bottom:14px;}
+  .q-prompt{font-size:20px;line-height:1.4;color:var(--ink);margin-bottom:8px;font-weight:400;}
+
+  .choices{display:flex;flex-direction:column;gap:10px;}
+  .choice{background:rgba(255,255,255,0.02);border:1px solid var(--line);padding:16px 20px;border-radius:2px;cursor:pointer;transition:all .25s;font-size:17px;color:var(--ink);text-align:left;font-family:'Cormorant Garamond',serif;line-height:1.4;letter-spacing:0.01em;}
+  .choice:hover{border-color:var(--gold);background:rgba(201,169,97,0.05);transform:translateX(2px);}
+  .choice .marker{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold-dim);margin-right:12px;letter-spacing:0.1em;}
+
+  .wait-card{text-align:center;padding:60px 24px;border:1px solid var(--line);border-radius:2px;background:rgba(255,255,255,0.01);}
+  .wait-card h3{font-size:32px;margin-bottom:12px;color:var(--gold-bright);}
+  .wait-card p{color:var(--ink-dim);font-size:17px;margin-bottom:24px;font-style:italic;}
+  .pulse{width:8px;height:8px;border-radius:50%;background:var(--gold);margin:0 auto;animation:pulse 1.6s ease infinite;}
+  @keyframes pulse{0%,100%{opacity:0.3;transform:scale(1);}50%{opacity:1;transform:scale(1.4);}}
+
+  .results-header{text-align:center;margin-bottom:36px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.3em;color:var(--gold);text-transform:uppercase;margin-bottom:12px;}
+  .results-title{font-size:38px;font-weight:500;color:var(--ink);letter-spacing:-0.02em;}
+  .results-title em{font-style:italic;color:var(--gold);}
+
+  .section{margin-bottom:42px;padding-bottom:36px;border-bottom:1px solid var(--line);}
+  .section:last-of-type{border-bottom:none;}
+  .section-title{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.3em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;text-align:center;}
+  .section-heading{font-size:28px;color:var(--ink);text-align:center;margin-bottom:20px;font-style:italic;}
+  .section-heading em{color:var(--gold-bright);font-style:normal;}
+
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+  @media(max-width:520px){.pair{grid-template-columns:1fr;}}
+  .pcard{background:linear-gradient(180deg,rgba(201,169,97,0.06),rgba(201,169,97,0.01));border:1px solid var(--line-bright);padding:20px 16px;border-radius:2px;text-align:center;}
+  .pcard-name{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:10px;}
+  .pcard-result{font-size:26px;font-weight:500;color:var(--gold-bright);line-height:1.1;margin-bottom:8px;}
+  .pcard-result.small{font-size:18px;}
+  .pcard-label{font-size:14px;font-style:italic;color:var(--ink);margin-bottom:8px;}
+  .pcard-blurb{font-size:13px;color:var(--ink-dim);line-height:1.5;}
+
+  .analysis{background:rgba(255,255,255,0.02);border-left:2px solid var(--gold);padding:16px 20px;font-size:15px;line-height:1.6;color:var(--ink);}
+  .analysis strong{color:var(--gold-bright);font-weight:500;font-style:italic;}
+
+  .synthesis{background:linear-gradient(180deg,rgba(201,169,97,0.08),rgba(201,169,97,0.02));border:1px solid var(--line-bright);padding:32px 24px;border-radius:2px;margin-bottom:32px;}
+  .synthesis h3{font-size:26px;color:var(--gold-bright);text-align:center;margin-bottom:16px;font-style:italic;}
+  .synthesis p{font-size:16px;line-height:1.7;color:var(--ink);margin-bottom:12px;}
+  .synthesis p:last-child{margin-bottom:0;}
+
+  .results-actions{display:flex;flex-direction:column;gap:12px;margin-top:20px;}
+
+  .intro-list{font-size:15px;color:var(--ink-dim);line-height:1.8;margin:20px 0;padding-left:20px;}
+  .intro-list li{margin-bottom:6px;}
+  .intro-list strong{color:var(--gold);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="home" class="screen active">
+    <div class="brand">
+      <span class="brand-mark">Volume Two · Full Spectrum</span>
+      <h1 class="brand-title">The Compatibility <em>Study</em></h1>
+      <div class="brand-rule"></div>
+      <p class="brand-sub">Five frameworks. One picture of the two of you.</p>
+    </div>
+    <ul class="intro-list">
+      <li><strong>Personality</strong> — how you each see the world</li>
+      <li><strong>Attachment</strong> — how you bond and need closeness</li>
+      <li><strong>Love Languages</strong> — how you give and receive love</li>
+      <li><strong>Enneagram</strong> — your core motivations and fears</li>
+      <li><strong>Values & Style</strong> — how you do relationships</li>
+    </ul>
+    <div class="field">
+      <label>Your Name</label>
+      <input type="text" id="hostName" placeholder="Enter your name">
+    </div>
+    <button onclick="createRoom()">Create Room</button>
+    <div class="divider">OR</div>
+    <div class="field">
+      <label>Your Name</label>
+      <input type="text" id="joinName" placeholder="Enter your name">
+    </div>
+    <div class="field">
+      <label>Room Code</label>
+      <input type="text" id="joinCode" placeholder="5-letter code" maxlength="5" style="text-transform:uppercase;letter-spacing:0.2em;">
+    </div>
+    <button class="ghost" onclick="joinRoom()">Join Room</button>
+  </div>
+
+  <div id="lobby" class="screen">
+    <div class="brand">
+      <span class="brand-mark">Awaiting Player Two</span>
+      <h1 class="brand-title">The <em>Room</em></h1>
+      <div class="brand-rule"></div>
+    </div>
+    <div class="room-display">
+      <div class="room-label">Share This Code</div>
+      <div class="room-code" id="roomCodeDisplay"></div>
+    </div>
+    <p class="waiting">Waiting for partner<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></p>
+  </div>
+
+  <div id="quiz" class="screen">
+    <div class="section-banner" id="sectionBanner">SECTION 1 OF 5 · PERSONALITY</div>
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span id="qProgressText">Question 01 / 100</span>
+        <span id="qDimension"></span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="partner-status" id="partnerStatus">Partner: 0 / 100</div>
+    </div>
+    <div class="question-box">
+      <div class="q-num" id="qLabel">Q · 01</div>
+      <div class="q-prompt" id="qPrompt"></div>
+    </div>
+    <div class="choices" id="choices"></div>
+  </div>
+
+  <div id="waiting" class="screen">
+    <div class="wait-card">
+      <h3>Done.</h3>
+      <p>Waiting for your partner to finish.<br>Results unlock the moment they're done.</p>
+      <div class="pulse"></div>
+      <p class="partner-status" id="waitStatus" style="margin-top:24px;">Partner: 0 / 100</p>
+    </div>
+  </div>
+
+  <div id="results" class="screen">
+    <div class="results-header">
+      <div class="eyebrow">YOUR RESULTS</div>
+      <h2 class="results-title">The Compatibility <em>Study</em></h2>
+    </div>
+    <div id="resultsBody"></div>
+    <div class="results-actions">
+      <button onclick="downloadPDF()">Download PDF Report</button>
+      <button class="ghost" onclick="resetGame()">New Game</button>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, get, update, onValue, off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyALDXdMAxe-KM2HogO887U13fkz7h1aM5A",
+    authDomain: "date-quiz-5a158.firebaseapp.com",
+    databaseURL: "https://date-quiz-5a158-default-rtdb.firebaseio.com",
+    projectId: "date-quiz-5a158",
+    storageBucket: "date-quiz-5a158.firebasestorage.app",
+    messagingSenderId: "393791444370",
+    appId: "1:393791444370:web:0d33fd90645558dec15d4b"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // ============================================================
+  // SECTION 1: MBTI (40 questions, 10 per dichotomy)
+  // ============================================================
+  const MBTI_Q = [
+    // E/I
+    {sec:'mbti',dim:'EI',side:'E',a:"At a party, I introduce myself to many people.",b:"I wait for others to come to me."},
+    {sec:'mbti',dim:'EI',side:'I',a:"I recharge best alone.",b:"I recharge best around people."},
+    {sec:'mbti',dim:'EI',side:'E',a:"I think out loud as I figure things out.",b:"I think things through silently first."},
+    {sec:'mbti',dim:'EI',side:'I',a:"After a long day, I need quiet to recover.",b:"After a long day, I want to go out."},
+    {sec:'mbti',dim:'EI',side:'E',a:"I prefer working in groups.",b:"I prefer working alone."},
+    {sec:'mbti',dim:'EI',side:'I',a:"I have a small circle of close friends.",b:"I have a wide circle of friends."},
+    {sec:'mbti',dim:'EI',side:'E',a:"Silence in conversation makes me uncomfortable.",b:"Silence in conversation feels fine."},
+    {sec:'mbti',dim:'EI',side:'I',a:"Too much stimulation drains me.",b:"I crave a lot going on around me."},
+    {sec:'mbti',dim:'EI',side:'E',a:"I jump into new social situations easily.",b:"I observe before joining in."},
+    {sec:'mbti',dim:'EI',side:'I',a:"I find small talk exhausting.",b:"I find small talk enjoyable."},
+    // S/N
+    {sec:'mbti',dim:'SN',side:'S',a:"I trust facts and direct experience.",b:"I trust patterns and possibilities."},
+    {sec:'mbti',dim:'SN',side:'N',a:"I'm more interested in what could be.",b:"I'm more interested in what is."},
+    {sec:'mbti',dim:'SN',side:'S',a:"I like specific, concrete instructions.",b:"I prefer the big picture."},
+    {sec:'mbti',dim:'SN',side:'N',a:"I focus on the future and what's possible.",b:"I focus on the present and what's real."},
+    {sec:'mbti',dim:'SN',side:'S',a:"I prefer practical solutions.",b:"I prefer creative solutions."},
+    {sec:'mbti',dim:'SN',side:'N',a:"I notice patterns and connections others miss.",b:"I notice details and facts others miss."},
+    {sec:'mbti',dim:'SN',side:'S',a:"I'd rather stick with what I know works.",b:"I'd rather try something new."},
+    {sec:'mbti',dim:'SN',side:'N',a:"I get bored with routine quickly.",b:"I find comfort in routine."},
+    {sec:'mbti',dim:'SN',side:'S',a:"I trust experience over theory.",b:"I trust theory over experience."},
+    {sec:'mbti',dim:'SN',side:'N',a:"I love brainstorming wild ideas.",b:"I prefer narrowing down to what's doable."},
+    // T/F
+    {sec:'mbti',dim:'TF',side:'T',a:"I make decisions with my head.",b:"I make decisions with my heart."},
+    {sec:'mbti',dim:'TF',side:'F',a:"Harmony is more important than being right.",b:"Being right is more important than harmony."},
+    {sec:'mbti',dim:'TF',side:'T',a:"I value logic over feelings.",b:"I value feelings over logic."},
+    {sec:'mbti',dim:'TF',side:'F',a:"I take things personally.",b:"I don't take things personally."},
+    {sec:'mbti',dim:'TF',side:'T',a:"I'd rather be honest than tactful.",b:"I'd rather be tactful than blunt."},
+    {sec:'mbti',dim:'TF',side:'F',a:"I'm easily moved by other people's emotions.",b:"I stay emotionally steady around others' feelings."},
+    {sec:'mbti',dim:'TF',side:'T',a:"I can debate without getting upset.",b:"Debates feel like personal attacks to me."},
+    {sec:'mbti',dim:'TF',side:'F',a:"I lead with empathy.",b:"I lead with analysis."},
+    {sec:'mbti',dim:'TF',side:'T',a:"Critique should be direct.",b:"Critique should be gentle."},
+    {sec:'mbti',dim:'TF',side:'F',a:"I'd rather be kind than correct.",b:"I'd rather be correct than kind."},
+    // J/P
+    {sec:'mbti',dim:'JP',side:'J',a:"I like having things settled and decided.",b:"I like keeping options open."},
+    {sec:'mbti',dim:'JP',side:'P',a:"I work best with flexibility.",b:"I work best with structure."},
+    {sec:'mbti',dim:'JP',side:'J',a:"I make lists and check them off.",b:"I figure it out as I go."},
+    {sec:'mbti',dim:'JP',side:'P',a:"Plans feel restrictive to me.",b:"Plans feel reassuring to me."},
+    {sec:'mbti',dim:'JP',side:'J',a:"I prefer to finish one thing before starting another.",b:"I prefer to juggle multiple things."},
+    {sec:'mbti',dim:'JP',side:'P',a:"I do my best work at the last minute.",b:"I do my best work when I start early."},
+    {sec:'mbti',dim:'JP',side:'J',a:"I like knowing what's going to happen.",b:"I like being surprised."},
+    {sec:'mbti',dim:'JP',side:'P',a:"I change plans easily.",b:"I stick to plans once made."},
+    {sec:'mbti',dim:'JP',side:'J',a:"My space is usually organized.",b:"My space is usually creatively cluttered."},
+    {sec:'mbti',dim:'JP',side:'P',a:"Deadlines feel like suggestions.",b:"Deadlines feel non-negotiable."},
+  ];
+
+  // ============================================================
+  // SECTION 2: ATTACHMENT (16 questions)
+  // Each question scores toward Secure (S), Anxious (A), or Avoidant (V)
+  // ============================================================
+  const ATT_Q = [
+    {sec:'att',a:"I find it easy to get close to people.",aScore:'S',b:"I get nervous when anyone gets too close.",bScore:'V'},
+    {sec:'att',a:"I worry my partner doesn't really love me.",aScore:'A',b:"I trust that my partner loves me when they say so.",bScore:'S'},
+    {sec:'att',a:"I'm comfortable depending on others.",aScore:'S',b:"I prefer not to depend on anyone.",bScore:'V'},
+    {sec:'att',a:"I often worry my partner will leave.",aScore:'A',b:"I rarely worry about being left.",bScore:'S'},
+    {sec:'att',a:"I need a lot of reassurance in relationships.",aScore:'A',b:"I rarely need reassurance.",bScore:'V'},
+    {sec:'att',a:"When my partner pulls away, I want to pull them closer.",aScore:'A',b:"When my partner pulls away, I give them space.",bScore:'S'},
+    {sec:'att',a:"I find it hard to fully open up.",aScore:'V',b:"I open up easily once I trust someone.",bScore:'S'},
+    {sec:'att',a:"I want closeness but it also makes me anxious.",aScore:'A',b:"Closeness feels comfortable to me.",bScore:'S'},
+    {sec:'att',a:"I value my independence above almost everything.",aScore:'V',b:"I value partnership above independence.",bScore:'A'},
+    {sec:'att',a:"When something's wrong, I bring it up directly.",aScore:'S',b:"When something's wrong, I withdraw.",bScore:'V'},
+    {sec:'att',a:"I check my phone a lot when I'm waiting to hear from a partner.",aScore:'A',b:"I'm fine waiting to hear back.",bScore:'S'},
+    {sec:'att',a:"I sometimes feel suffocated in relationships.",aScore:'V',b:"I rarely feel suffocated.",bScore:'S'},
+    {sec:'att',a:"I'm comfortable saying 'I love you' first.",aScore:'S',b:"I wait for the other person to say it first.",bScore:'V'},
+    {sec:'att',a:"I overthink texts I receive from a partner.",aScore:'A',b:"I take texts at face value.",bScore:'S'},
+    {sec:'att',a:"I keep emotional walls up even with close partners.",aScore:'V',b:"I let my walls down with people I trust.",bScore:'S'},
+    {sec:'att',a:"I need a lot of time alone to feel okay.",aScore:'V',b:"I'm happiest when I'm with my person.",bScore:'A'},
+  ];
+
+  // ============================================================
+  // SECTION 3: LOVE LANGUAGES (15 questions, 3 per language)
+  // W=Words, T=Time, P=Touch, A=Acts, G=Gifts
+  // ============================================================
+  const LL_Q = [
+    {sec:'ll',a:"Hearing 'I love you' melts me.",aScore:'W',b:"A spontaneous hug means more than the words.",bScore:'P'},
+    {sec:'ll',a:"My partner doing the dishes without being asked.",aScore:'A',b:"My partner sitting with me for an hour with no phones.",bScore:'T'},
+    {sec:'ll',a:"A surprise gift that shows they were thinking of me.",aScore:'G',b:"A long, written-out compliment about who I am.",bScore:'W'},
+    {sec:'ll',a:"Holding hands in public.",aScore:'P',b:"Running an errand for me when I'm slammed.",bScore:'A'},
+    {sec:'ll',a:"A whole day just the two of us, no distractions.",aScore:'T',b:"A small thoughtful something they picked up for me.",bScore:'G'},
+    {sec:'ll',a:"Praise for something I worked hard on.",aScore:'W',b:"Them taking something off my plate.",bScore:'A'},
+    {sec:'ll',a:"Cuddling on the couch.",aScore:'P',b:"Their full attention during a conversation.",bScore:'T'},
+    {sec:'ll',a:"Being told I'm beautiful or handsome.",aScore:'W',b:"Being kissed unexpectedly.",bScore:'P'},
+    {sec:'ll',a:"Flowers for no reason.",aScore:'G',b:"Breakfast made for me.",bScore:'A'},
+    {sec:'ll',a:"Phone-free dinners.",aScore:'T',b:"A back rub at the end of a long day.",bScore:'P'},
+    {sec:'ll',a:"A handwritten card.",aScore:'W',b:"A thoughtful gift wrapped just for me.",bScore:'G'},
+    {sec:'ll',a:"My partner running me a bath.",aScore:'A',b:"My partner cancelling plans to stay home with me.",bScore:'T'},
+    {sec:'ll',a:"Constant little touches throughout the day.",aScore:'P',b:"Constant little compliments throughout the day.",bScore:'W'},
+    {sec:'ll',a:"A bouquet just because.",aScore:'G',b:"Them remembering and showing up at exactly the right moment.",bScore:'T'},
+    {sec:'ll',a:"Acts that make my life easier.",aScore:'A',b:"Words that make my heart bigger.",bScore:'W'},
+  ];
+
+  // ============================================================
+  // SECTION 4: ENNEAGRAM (18 questions, 2 per type)
+  // Types 1-9
+  // ============================================================
+  const ENN_Q = [
+    {sec:'enn',a:"I have a strong inner critic that pushes me to do things right.",aScore:1,b:"I'm pretty easygoing about how things get done.",bScore:9},
+    {sec:'enn',a:"I genuinely love helping people and feel needed when I do.",aScore:2,b:"I keep my distance until I know someone well.",bScore:5},
+    {sec:'enn',a:"I'm driven by goals and what I can achieve.",aScore:3,b:"I'm driven by feelings and what's authentic.",bScore:4},
+    {sec:'enn',a:"I often feel like something essential is missing from my life.",aScore:4,b:"I'm content with what is.",bScore:9},
+    {sec:'enn',a:"I need a lot of alone time to recharge my mind.",aScore:5,b:"I need a lot of people time to feel alive.",bScore:7},
+    {sec:'enn',a:"I'm always scanning for what could go wrong.",aScore:6,b:"I'm always scanning for what could go right.",bScore:7},
+    {sec:'enn',a:"I keep my schedule packed with plans and possibilities.",aScore:7,b:"I prefer one thing at a time, deeply.",bScore:5},
+    {sec:'enn',a:"I'm quick to push back when someone tries to control me.",aScore:8,b:"I avoid conflict whenever I can.",bScore:9},
+    {sec:'enn',a:"I'm a peacekeeper in groups.",aScore:9,b:"I'm a truth-teller in groups.",bScore:8},
+    {sec:'enn',a:"Doing things perfectly matters to me.",aScore:1,b:"Being seen as successful matters to me.",bScore:3},
+    {sec:'enn',a:"I anticipate what people need before they ask.",aScore:2,b:"I let people tell me what they need.",bScore:5},
+    {sec:'enn',a:"I adapt myself to win people over.",aScore:3,b:"I refuse to be anyone but myself.",bScore:4},
+    {sec:'enn',a:"I feel things deeply, sometimes painfully.",aScore:4,b:"I observe my feelings from a distance.",bScore:5},
+    {sec:'enn',a:"I research things obsessively before I commit.",aScore:5,b:"I commit first and figure it out as I go.",bScore:7},
+    {sec:'enn',a:"I'm loyal to the people and groups I belong to.",aScore:6,b:"I question authority by default.",bScore:8},
+    {sec:'enn',a:"I keep my options wide open at all times.",aScore:7,b:"I commit fully to one thing.",bScore:1},
+    {sec:'enn',a:"I have a big personality and I take up space.",aScore:8,b:"I make myself smaller to keep the peace.",bScore:9},
+    {sec:'enn',a:"I dislike conflict and avoid it.",aScore:9,b:"I welcome conflict as long as it's honest.",bScore:8},
+  ];
+
+  // ============================================================
+  // SECTION 5: RELATIONSHIP VALUES & STYLE (11 questions)
+  // Dimensions: conflict (C), independence (I), commitment (M), repair (R), expression (E)
+  // ============================================================
+  const VAL_Q = [
+    {sec:'val',dim:'C',a:"When upset, I want to talk it out right away.",aScore:'now',b:"When upset, I need time to cool off first.",bScore:'space'},
+    {sec:'val',dim:'I',a:"In a relationship, I want a lot of together time.",aScore:'together',b:"In a relationship, I need significant alone time.",bScore:'apart'},
+    {sec:'val',dim:'M',a:"I move slow and take commitment seriously.",aScore:'slow',b:"When I know, I know — I commit fast.",bScore:'fast'},
+    {sec:'val',dim:'R',a:"After a fight, I need a verbal apology to feel okay.",aScore:'words',b:"After a fight, I need affection and physical reassurance.",bScore:'touch'},
+    {sec:'val',dim:'E',a:"I'm openly affectionate, even in public.",aScore:'open',b:"I show affection more privately.",bScore:'private'},
+    {sec:'val',dim:'C',a:"When my partner is upset, my instinct is to fix the problem.",aScore:'fix',b:"When my partner is upset, my instinct is to listen and validate.",bScore:'listen'},
+    {sec:'val',dim:'I',a:"I want to spend most evenings together.",aScore:'together',b:"I want at least a few evenings to myself each week.",bScore:'apart'},
+    {sec:'val',dim:'M',a:"I believe in defining the relationship early.",aScore:'fast',b:"I believe in letting things unfold naturally.",bScore:'slow'},
+    {sec:'val',dim:'R',a:"I need my partner to take responsibility before I can move on.",aScore:'words',b:"I'd rather just move on than rehash it.",bScore:'touch'},
+    {sec:'val',dim:'E',a:"I tell my partner I love them often.",aScore:'open',b:"I show love more than I say it.",bScore:'private'},
+    {sec:'val',dim:'C',a:"I'd rather have a hard honest conversation than keep the peace.",aScore:'now',b:"I'd rather keep the peace than dig into something painful.",bScore:'space'},
+  ];
+
+  const ALL_Q = [...MBTI_Q, ...ATT_Q, ...LL_Q, ...ENN_Q, ...VAL_Q];
+  // Total: 40+16+15+18+11 = 100
+
+  const SECTIONS = [
+    {key:'mbti',name:'PERSONALITY',start:0,end:40},
+    {key:'att',name:'ATTACHMENT',start:40,end:56},
+    {key:'ll',name:'LOVE LANGUAGES',start:56,end:71},
+    {key:'enn',name:'ENNEAGRAM',start:71,end:89},
+    {key:'val',name:'VALUES & STYLE',start:89,end:100},
+  ];
+
+  // ============================================================
+  // TYPE DATA
+  // ============================================================
+  const MBTI_TYPES = {
+    INTJ:{name:"The Architect",blurb:"Strategic, independent, quietly intense. Sees three moves ahead."},
+    INTP:{name:"The Theorist",blurb:"Curious, analytical, endlessly questioning. Lives in the mind."},
+    ENTJ:{name:"The Commander",blurb:"Decisive, ambitious, a natural leader. Built to execute."},
+    ENTP:{name:"The Debater",blurb:"Quick-witted, idea-driven, allergic to boredom."},
+    INFJ:{name:"The Advocate",blurb:"Soulful, perceptive, deeply private. Reads people instantly."},
+    INFP:{name:"The Idealist",blurb:"Romantic, values-driven, vividly inner. Quietly fierce."},
+    ENFJ:{name:"The Protagonist",blurb:"Warm, charismatic, tuned to others. The room shifts when they enter."},
+    ENFP:{name:"The Campaigner",blurb:"Spirited, expressive, infectiously alive. Energy in human form."},
+    ISTJ:{name:"The Inspector",blurb:"Steady, dependable, quietly thorough. The one you can count on."},
+    ISFJ:{name:"The Defender",blurb:"Loyal, attentive, protective. Keeper of the people they love."},
+    ESTJ:{name:"The Executive",blurb:"Direct, organized, built to take charge. Gets it done."},
+    ESFJ:{name:"The Provider",blurb:"Warm, social, devoted to community. The host with the heart."},
+    ISTP:{name:"The Virtuoso",blurb:"Cool, capable, hands-on. Figures it out by doing it."},
+    ISFP:{name:"The Artist",blurb:"Sensitive, aesthetic, quietly bold. Lives by feeling."},
+    ESTP:{name:"The Entrepreneur",blurb:"Bold, present, action-first. Thrives in the moment."},
+    ESFP:{name:"The Performer",blurb:"Vibrant, playful, impossible to ignore."},
+  };
+
+  const ATT_TYPES = {
+    S:{name:"Secure",blurb:"Comfortable with closeness and independence. Communicates needs directly. The healthiest baseline — about half of all people land here."},
+    A:{name:"Anxious",blurb:"Craves closeness and reassurance. Highly attuned to a partner's moods. Loves deeply, sometimes worries about being left."},
+    V:{name:"Avoidant",blurb:"Values independence highly. Needs space to feel safe. Loves from a slight distance and protects the inner world fiercely."},
+  };
+
+  const LL_TYPES = {
+    W:"Words of Affirmation",
+    T:"Quality Time",
+    P:"Physical Touch",
+    A:"Acts of Service",
+    G:"Receiving Gifts",
+  };
+  const LL_BLURB = {
+    W:"Words land hard. Compliments, appreciation, and 'I love yous' are how love feels real.",
+    T:"Undivided attention is everything. Phones down, eyes up, fully present.",
+    P:"Touch is the language. Hand-holding, hugs, casual physical closeness.",
+    A:"Actions speak louder than words. Help, effort, doing things to make life easier.",
+    G:"Thoughtful tokens carry weight. It's not the cost — it's the 'I was thinking of you.'",
+  };
+
+  const ENN_TYPES = {
+    1:{name:"Type 1 — The Reformer",blurb:"Principled, perfectionistic, self-disciplined. Driven by a need to be good and right."},
+    2:{name:"Type 2 — The Helper",blurb:"Caring, generous, people-pleasing. Driven by a need to be loved and needed."},
+    3:{name:"Type 3 — The Achiever",blurb:"Ambitious, image-conscious, adaptive. Driven by a need to succeed and be admired."},
+    4:{name:"Type 4 — The Individualist",blurb:"Romantic, expressive, identity-seeking. Driven by a need to be unique and authentic."},
+    5:{name:"Type 5 — The Investigator",blurb:"Cerebral, observant, private. Driven by a need to understand and feel competent."},
+    6:{name:"Type 6 — The Loyalist",blurb:"Committed, vigilant, security-oriented. Driven by a need for safety and trust."},
+    7:{name:"Type 7 — The Enthusiast",blurb:"Spontaneous, optimistic, possibility-driven. Driven by a need for freedom and joy."},
+    8:{name:"Type 8 — The Challenger",blurb:"Powerful, decisive, protective. Driven by a need for control and not being controlled."},
+    9:{name:"Type 9 — The Peacemaker",blurb:"Easygoing, accepting, harmonizing. Driven by a need for inner and outer peace."},
+  };
+
+  let state = {
+    roomCode:null, playerId:null, playerName:null, isHost:false,
+    answers:[], currentQ:0, partnerProgress:0, mySubmitted:false, partnerSubmitted:false,
+    listener:null,
+  };
+
+  function show(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function genCode(){return Array.from({length:5},()=>String.fromCharCode(65+Math.floor(Math.random()*26))).join('');}
+
+  window.createRoom = async function(){
+    const name = document.getElementById('hostName').value.trim();
+    if(!name){alert('Enter your name first.');return;}
+    const code = genCode();
+    state.roomCode = code; state.playerId='p1'; state.playerName=name; state.isHost=true;
+    await set(ref(db,`compat/${code}`),{
+      p1:{name,answers:{},progress:0,submitted:false,results:null},
+      p2:null, status:'waiting', createdAt:Date.now(),
+    });
+    document.getElementById('roomCodeDisplay').textContent=code;
+    show('lobby');
+    listenRoom();
+  };
+
+  window.joinRoom = async function(){
+    const name = document.getElementById('joinName').value.trim();
+    const code = document.getElementById('joinCode').value.trim().toUpperCase();
+    if(!name||!code){alert('Enter your name and the room code.');return;}
+    const snap = await get(ref(db,`compat/${code}`));
+    if(!snap.exists()){alert('Room not found.');return;}
+    const room = snap.val();
+    if(room.p2){alert('Room is full.');return;}
+    state.roomCode=code; state.playerId='p2'; state.playerName=name; state.isHost=false;
+    await update(ref(db,`compat/${code}`),{
+      p2:{name,answers:{},progress:0,submitted:false,results:null},
+      status:'playing',
+    });
+    listenRoom();
+    startQuiz();
+  };
+
+  function listenRoom(){
+    const r = ref(db,`compat/${state.roomCode}`);
+    state.listener = onValue(r,(snap)=>{
+      if(!snap.exists())return;
+      const room = snap.val();
+      if(state.isHost && room.p2 && room.status==='playing'){
+        if(document.getElementById('lobby').classList.contains('active')) startQuiz();
+      }
+      const partnerKey = state.playerId==='p1'?'p2':'p1';
+      const partner = room[partnerKey];
+      if(partner){
+        state.partnerProgress = partner.progress||0;
+        state.partnerSubmitted = !!partner.submitted;
+        updatePartnerStatus();
+      }
+      if(state.mySubmitted && state.partnerSubmitted){
+        showResults(room);
+      }
+    });
+  }
+
+  function updatePartnerStatus(){
+    const txt = state.partnerSubmitted
+      ? `<span class="live">Partner: done ✓</span>`
+      : `Partner: ${state.partnerProgress} / 100`;
+    const ps=document.getElementById('partnerStatus');if(ps)ps.innerHTML=txt;
+    const ws=document.getElementById('waitStatus');if(ws)ws.innerHTML=txt;
+  }
+
+  function startQuiz(){
+    state.currentQ=0; state.answers=new Array(ALL_Q.length).fill(null);
+    show('quiz'); renderQuestion();
+  }
+
+  function getCurrentSection(idx){
+    for(const s of SECTIONS){
+      if(idx>=s.start && idx<s.end) return s;
+    }
+    return SECTIONS[0];
+  }
+
+  function renderQuestion(){
+    const i = state.currentQ; const q = ALL_Q[i];
+    const section = getCurrentSection(i);
+    const secIdx = SECTIONS.indexOf(section)+1;
+    document.getElementById('sectionBanner').textContent = `SECTION ${secIdx} OF 5 · ${section.name}`;
+    document.getElementById('qProgressText').textContent=`Question ${String(i+1).padStart(3,'0')} / 100`;
+    document.getElementById('qDimension').textContent='';
+    document.getElementById('qLabel').textContent=`Q · ${String(i+1).padStart(2,'0')}`;
+    document.getElementById('qPrompt').textContent="Which feels more like you?";
+    document.getElementById('progressFill').style.width=`${(i/ALL_Q.length)*100}%`;
+    const choices = document.getElementById('choices');
+    choices.innerHTML='';
+    [{label:'A',text:q.a},{label:'B',text:q.b}].forEach(c=>{
+      const btn = document.createElement('button');
+      btn.className='choice'; btn.type='button';
+      btn.innerHTML=`<span class="marker">${c.label}</span>${c.text}`;
+      btn.onclick=()=>chooseAnswer(c.label);
+      choices.appendChild(btn);
+    });
+  }
+
+  async function chooseAnswer(label){
+    state.answers[state.currentQ]=label;
+    const playerRef = ref(db,`compat/${state.roomCode}/${state.playerId}`);
+    await update(playerRef,{[`answers/${state.currentQ}`]:label, progress: state.currentQ+1});
+    state.currentQ++;
+    if(state.currentQ>=ALL_Q.length){
+      await finishQuiz();
+    } else {
+      renderQuestion();
+    }
+  }
+
+  async function finishQuiz(){
+    const results = computeAllResults(state.answers);
+    state.mySubmitted=true;
+    await update(ref(db,`compat/${state.roomCode}/${state.playerId}`),{submitted:true,results});
+    show('waiting');
+    updatePartnerStatus();
+  }
+
+  // ============================================================
+  // SCORING
+  // ============================================================
+  function computeAllResults(answers){
+    return {
+      mbti: computeMBTI(answers),
+      att: computeAttachment(answers),
+      ll: computeLoveLanguages(answers),
+      enn: computeEnneagram(answers),
+      val: computeValues(answers),
+    };
+  }
+
+  function computeMBTI(answers){
+    const tally={E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0};
+    MBTI_Q.forEach((q,idx)=>{
+      const ans = answers[idx];
+      if(!ans)return;
+      const sideA = q.side;
+      const sideB = q.dim.replace(sideA,'');
+      tally[ans==='A'?sideA:sideB]++;
+    });
+    return (tally.E>=tally.I?'E':'I')+(tally.S>=tally.N?'S':'N')+(tally.T>=tally.F?'T':'F')+(tally.J>=tally.P?'J':'P');
+  }
+
+  function computeAttachment(answers){
+    const tally={S:0,A:0,V:0};
+    ATT_Q.forEach((q,localIdx)=>{
+      const idx = 40+localIdx;
+      const ans = answers[idx];
+      if(!ans)return;
+      tally[ans==='A'?q.aScore:q.bScore]++;
+    });
+    let max='S',maxV=-1;
+    for(const k in tally){if(tally[k]>maxV){maxV=tally[k];max=k;}}
+    return max;
+  }
+
+  function computeLoveLanguages(answers){
+    const tally={W:0,T:0,P:0,A:0,G:0};
+    LL_Q.forEach((q,localIdx)=>{
+      const idx = 56+localIdx;
+      const ans = answers[idx];
+      if(!ans)return;
+      tally[ans==='A'?q.aScore:q.bScore]++;
+    });
+    const sorted = Object.entries(tally).sort((a,b)=>b[1]-a[1]);
+    return {primary:sorted[0][0],secondary:sorted[1][0],tally};
+  }
+
+  function computeEnneagram(answers){
+    const tally={1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0};
+    ENN_Q.forEach((q,localIdx)=>{
+      const idx = 71+localIdx;
+      const ans = answers[idx];
+      if(!ans)return;
+      tally[ans==='A'?q.aScore:q.bScore]++;
+    });
+    let max=1,maxV=-1;
+    for(const k in tally){if(tally[k]>maxV){maxV=tally[k];max=parseInt(k);}}
+    return max;
+  }
+
+  function computeValues(answers){
+    const tally={now:0,space:0,together:0,apart:0,fast:0,slow:0,words:0,touch:0,open:0,private:0};
+    VAL_Q.forEach((q,localIdx)=>{
+      const idx = 89+localIdx;
+      const ans = answers[idx];
+      if(!ans)return;
+      tally[ans==='A'?q.aScore:q.bScore]++;
+    });
+    return {
+      conflict: tally.now>=tally.space?'now':'space',
+      independence: tally.together>=tally.apart?'together':'apart',
+      commitment: tally.fast>=tally.slow?'fast':'slow',
+      repair: tally.words>=tally.touch?'words':'touch',
+      expression: tally.open>=tally.private?'open':'private',
+    };
+  }
+
+  // ============================================================
+  // RESULTS DISPLAY
+  // ============================================================
+  let lastResults = null;
+  function showResults(room){
+    const p1=room.p1, p2=room.p2;
+    if(!p1?.results||!p2?.results)return;
+    lastResults={p1,p2};
+    const body = document.getElementById('resultsBody');
+    body.innerHTML = '';
+    body.appendChild(buildSection('I','PERSONALITY','Type <em>Theory</em>',
+      buildMBTISection(p1,p2)));
+    body.appendChild(buildSection('II','ATTACHMENT','How You <em>Bond</em>',
+      buildAttachmentSection(p1,p2)));
+    body.appendChild(buildSection('III','LOVE LANGUAGES','How You <em>Love</em>',
+      buildLLSection(p1,p2)));
+    body.appendChild(buildSection('IV','ENNEAGRAM','Core <em>Motivation</em>',
+      buildEnneagramSection(p1,p2)));
+    body.appendChild(buildSection('V','VALUES & STYLE','Relationship <em>Approach</em>',
+      buildValuesSection(p1,p2)));
+    body.appendChild(buildSynthesis(p1,p2));
+    show('results');
+  }
+
+  function buildSection(num,label,heading,content){
+    const div = document.createElement('div');
+    div.className='section';
+    div.innerHTML = `<div class="section-title">PART ${num} · ${label}</div><div class="section-heading">${heading}</div>`;
+    div.appendChild(content);
+    return div;
+  }
+
+  function buildMBTISection(p1,p2){
+    const t1=p1.results.mbti, t2=p2.results.mbti;
+    const wrap = document.createElement('div');
+    const pair = document.createElement('div');
+    pair.className='pair';
+    pair.innerHTML = `
+      <div class="pcard">
+        <div class="pcard-name">${escapeHTML(p1.name)}</div>
+        <div class="pcard-result">${t1}</div>
+        <div class="pcard-label">${MBTI_TYPES[t1].name}</div>
+        <div class="pcard-blurb">${MBTI_TYPES[t1].blurb}</div>
+      </div>
+      <div class="pcard">
+        <div class="pcard-name">${escapeHTML(p2.name)}</div>
+        <div class="pcard-result">${t2}</div>
+        <div class="pcard-label">${MBTI_TYPES[t2].name}</div>
+        <div class="pcard-blurb">${MBTI_TYPES[t2].blurb}</div>
+      </div>`;
+    wrap.appendChild(pair);
+    let matches = 0;
+    for(let i=0;i<4;i++)if(t1[i]===t2[i])matches++;
+    let vibe;
+    if(matches===4)vibe="<strong>Mirror match.</strong> Same wiring across the board. You see the world the same way — easy to feel understood, but watch for echo chamber.";
+    else if(matches===3)vibe="<strong>Mostly aligned.</strong> Three of four match. You speak the same language with one healthy contrast keeping things interesting.";
+    else if(matches===2)vibe="<strong>Balanced pairing.</strong> Half mirror, half complement. Often the strongest matches because you balance each other without being incompatible.";
+    else if(matches===1)vibe="<strong>Sparks.</strong> Different wiring on three of four. Plenty to learn from each other if you both stay curious.";
+    else vibe="<strong>Magnetic opposites.</strong> Total contrast. Intense chemistry, real work — opposites attract but they also have to translate.";
+    const a = document.createElement('div');
+    a.className='analysis';
+    a.innerHTML = vibe;
+    wrap.appendChild(a);
+    return wrap;
+  }
+
+  function buildAttachmentSection(p1,p2){
+    const a1=p1.results.att, a2=p2.results.att;
+    const wrap = document.createElement('div');
+    const pair = document.createElement('div');
+    pair.className='pair';
+    pair.innerHTML = `
+      <div class="pcard">
+        <div class="pcard-name">${escapeHTML(p1.name)}</div>
+        <div class="pcard-result small">${ATT_TYPES[a1].name}</div>
+        <div class="pcard-blurb">${ATT_TYPES[a1].blurb}</div>
+      </div>
+      <div class="pcard">
+        <div class="pcard-name">${escapeHTML(p2.name)}</div>
+        <div class="pcard-result small">${ATT_TYPES[a2].name}</div>
+        <div class="pcard-blurb">${ATT_TYPES[a2].blurb}</div>
+      </div>`;
+    wrap.appendChild(pair);
+    const key = [a1,a2].sort().join('');
+    const dynamics = {
+      'SS':"<strong>Two secures.</strong> The healthiest pairing in attachment research. You both communicate needs directly, give space comfortably, and don't spiral when things get hard. This is the gold standard.",
+      'AA':"<strong>Two anxious.</strong> You'll both crave reassurance and closeness, which can feel beautiful and intense. Watch for amplifying each other's worries — when one of you spirals, the other might too. Practice grounding each other.",
+      'VV':"<strong>Two avoidants.</strong> You'll both respect each other's space, which feels great at first. The risk: nobody pushes for closeness, and the relationship can quietly drift. Be intentional about connection rituals.",
+      'AS':"<strong>Anxious + secure.</strong> The secure partner provides a stable base that helps the anxious one calm their alarm system over time. One of the most healing pairings — secures often help anxious partners earn security.",
+      'SV':"<strong>Avoidant + secure.</strong> The secure partner doesn't take the avoidant's need for space personally, which gives the avoidant room to slowly trust closeness. Healing for the avoidant if the secure stays patient.",
+      'AV':"<strong>Anxious + avoidant.</strong> The famous chase-and-withdraw dynamic. When the avoidant pulls back, the anxious one chases harder, which makes the avoidant pull back more. It's not impossible — but it requires both people knowing the pattern and choosing to break it.",
+    };
+    const a = document.createElement('div');
+    a.className='analysis';
+    a.innerHTML = dynamics[key]||"";
+    wrap.appendChild(a);
+    return wrap;
+  }
+
+  function buildLLSection(p1,p2){
+    const l1=p1.results.ll, l2=p2.results.ll;
+    const wrap = document.createElement('div');
+    const pair = document.createElement('div');
+    pair.className='pair';
+    pair.innerHTML = `
+      <div class="pcard">
+        <div class="pcard-name">${escapeHTML(p1.name)}</div>
+        <div class="pcard-result small">${LL_TYPES[l1.primary]}</div>
+        <div class="pcard-label">also: ${LL_TYPES[l1.secondary]}</div>
+        <div class="pcard-blurb">${LL_BLURB[l1.primary]}</div>
+      </div>
+      <div class="pcard">
+        <div class="pcard-name">${escapeHTML(p2.name)}</div>
+        <div class="pcard-result small">${LL_TYPES[l2.primary]}</div>
+        <div class="pcard-label">also: ${LL_TYPES[l2.secondary]}</div>
+        <div class="pcard-blurb">${LL_BLURB[l2.primary]}</div>
+      </div>`;
+    wrap.appendChild(pair);
+    let analysis;
+    if(l1.primary===l2.primary){
+      analysis = `<strong>You speak the same love language.</strong> Both of you light up around ${LL_TYPES[l1.primary]} — you'll instinctively give each other what you each want most. The risk: don't forget the other four. Variety keeps things alive.`;
+    } else if(l1.secondary===l2.primary || l2.secondary===l1.primary){
+      analysis = `<strong>Overlapping languages.</strong> Your top language is your partner's second — and vice versa, or close to it. This is a strong setup. Lead with what your partner needs most and you'll both feel seen.`;
+    } else {
+      analysis = `<strong>Different primary languages.</strong> ${escapeHTML(p1.name)} feels loved through ${LL_TYPES[l1.primary]}, ${escapeHTML(p2.name)} through ${LL_TYPES[l2.primary]}. This isn't a problem — it's the most common scenario. The trick is each of you learning to give in the other's language, not the one that comes naturally to you.`;
+    }
+    const a = document.createElement('div');
+    a.className='analysis';
+    a.innerHTML = analysis;
+    wrap.appendChild(a);
+    return wrap;
+  }
+
+  function buildEnneagramSection(p1,p2){
+    const e1=p1.results.enn, e2=p2.results.enn;
+    const wrap = document.createElement('div');
+    const pair = document.createElement('div');
+    pair.className='pair';
+    pair.innerHTML = `
+      <div class="pcard">
+        <div class="pcard-name">${escapeHTML(p1.name)}</div>
+        <div class="pcard-result small">Type ${e1}</div>
+        <div class="pcard-label">${ENN_TYPES[e1].name.split(' — ')[1]}</div>
+        <div class="pcard-blurb">${ENN_TYPES[e1].blurb}</div>
+      </div>
+      <div class="pcard">
+        <div class="pcard-name">${escapeHTML(p2.name)}</div>
+        <div class="pcard-result small">Type ${e2}</div>
+        <div class="pcard-label">${ENN_TYPES[e2].name.split(' — ')[1]}</div>
+        <div class="pcard-blurb">${ENN_TYPES[e2].blurb}</div>
+      </div>`;
+    wrap.appendChild(pair);
+    let analysis;
+    if(e1===e2){
+      analysis = `<strong>Same type.</strong> You share the same core motivation and the same core fear. You'll understand each other instantly — and you'll also share the same blind spots. Watch for amplifying what you each struggle with.`;
+    } else {
+      const diff = Math.abs(e1-e2);
+      if(diff===1){
+        analysis = `<strong>Adjacent types.</strong> You're close enough to speak each other's language but different enough to bring fresh angles. Often a comfortable, low-friction pairing.`;
+      } else {
+        analysis = `<strong>Different core motivations.</strong> Type ${e1} is driven by ${getEnnDriver(e1)}, Type ${e2} by ${getEnnDriver(e2)}. Knowing what fundamentally moves the other person — and what their deepest fear is — gives you a cheat code for understanding why they do what they do.`;
+      }
+    }
+    const a = document.createElement('div');
+    a.className='analysis';
+    a.innerHTML = analysis;
+    wrap.appendChild(a);
+    return wrap;
+  }
+  function getEnnDriver(t){
+    return ({1:"a need to be good and right",2:"a need to be loved and needed",3:"a need to succeed and be admired",4:"a need to be authentic and unique",5:"a need to understand and stay competent",6:"a need for safety and trust",7:"a need for freedom and joy",8:"a need for control and power",9:"a need for peace and harmony"})[t];
+  }
+
+  function buildValuesSection(p1,p2){
+    const v1=p1.results.val, v2=p2.results.val;
+    const wrap = document.createElement('div');
+    const dims = [
+      {key:'conflict',label:'Conflict Style',map:{now:'Talks it out immediately',space:'Needs space first'}},
+      {key:'independence',label:'Independence',map:{together:'Wants lots of together time',apart:'Needs significant alone time'}},
+      {key:'commitment',label:'Commitment Pace',map:{fast:'Commits when they know',slow:'Takes commitment slowly'}},
+      {key:'repair',label:'Repair Style',map:{words:'Needs verbal acknowledgment',touch:'Needs physical reassurance'}},
+      {key:'expression',label:'Expression',map:{open:'Openly affectionate',private:'Privately affectionate'}},
+    ];
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin-bottom:18px;';
+    dims.forEach(d=>{
+      const same = v1[d.key]===v2[d.key];
+      const row = document.createElement('div');
+      row.style.cssText = `padding:12px 16px;background:rgba(255,255,255,0.02);border:1px solid var(--line);border-radius:2px;font-size:14px;color:var(--ink);`;
+      row.innerHTML = `<div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:6px;">${d.label} ${same?'· aligned':'· differs'}</div>
+        <div><span style="color:${same?'var(--gold-bright)':'var(--ink)'};">${escapeHTML(p1.name)}: ${d.map[v1[d.key]]}</span><br>
+        <span style="color:${same?'var(--gold-bright)':'var(--ink)'};">${escapeHTML(p2.name)}: ${d.map[v2[d.key]]}</span></div>`;
+      grid.appendChild(row);
+    });
+    wrap.appendChild(grid);
+    let aligned = 0;
+    dims.forEach(d=>{if(v1[d.key]===v2[d.key])aligned++;});
+    let analysis;
+    if(aligned>=4) analysis = `<strong>Highly aligned on relationship style.</strong> You approach the practical mechanics of being together the same way on ${aligned} of 5 dimensions. Less to negotiate, fewer mismatched expectations.`;
+    else if(aligned>=2) analysis = `<strong>Mixed alignment.</strong> You match on ${aligned} dimensions and differ on ${5-aligned}. Knowing the gaps in advance is the whole point — these are the conversations to have early.`;
+    else analysis = `<strong>Different relationship styles.</strong> You only align on ${aligned} of 5 dimensions, which doesn't mean incompatible — it means you'll need to translate for each other on how you each do relationships. Awareness is half the battle.`;
+    const a = document.createElement('div');
+    a.className='analysis';
+    a.innerHTML = analysis;
+    wrap.appendChild(a);
+    return wrap;
+  }
+
+  function buildSynthesis(p1,p2){
+    const div = document.createElement('div');
+    div.className='synthesis';
+    const r1=p1.results, r2=p2.results;
+    let mbtiMatches=0;for(let i=0;i<4;i++)if(r1.mbti[i]===r2.mbti[i])mbtiMatches++;
+    const attKey = [r1.att,r2.att].sort().join('');
+    const llSame = r1.ll.primary===r2.ll.primary;
+    const ennSame = r1.enn===r2.enn;
+    let valAligned=0;
+    ['conflict','independence','commitment','repair','expression'].forEach(k=>{if(r1.val[k]===r2.val[k])valAligned++;});
+    const totalPoints = mbtiMatches + (attKey==='SS'?2:attKey.includes('S')?1:0) + (llSame?1:0) + (ennSame?1:0) + valAligned;
+    let headline;
+    if(totalPoints>=10) headline = "Rare-air compatibility.";
+    else if(totalPoints>=7) headline = "Strong potential.";
+    else if(totalPoints>=4) headline = "Real chemistry, real work.";
+    else headline = "Opposites in motion.";
+    div.innerHTML = `<h3>The Big Picture</h3>
+      <p><strong style="color:var(--gold-bright);font-style:italic;">${headline}</strong></p>
+      <p>Across all five frameworks, you and ${escapeHTML(p2.name)} share ${mbtiMatches} of 4 personality dimensions, ${valAligned} of 5 relationship style dimensions, and ${llSame?'the same':'different'} primary love language. Your attachment styles are <em>${ATT_TYPES[r1.att].name.toLowerCase()}</em> and <em>${ATT_TYPES[r2.att].name.toLowerCase()}</em> — which is the dimension that matters most for how you'll handle conflict and closeness over time.</p>
+      <p>The framework that should get the most attention going forward: <strong>${getFocusArea(r1,r2,mbtiMatches,attKey,llSame,valAligned)}</strong>. That's where the most useful conversations live.</p>
+      <p style="font-style:italic;color:var(--ink-dim);font-size:14px;">Compatibility isn't a score — it's a starting place. The strongest relationships aren't the ones with the highest match; they're the ones where both people understand the gaps and choose each other anyway.</p>`;
+    return div;
+  }
+  function getFocusArea(r1,r2,mbti,att,ll,val){
+    if(att==='AV') return "attachment — the chase-and-withdraw dynamic is real and worth naming early";
+    if(val<=2) return "values & style — you do relationships differently and those differences will show up fast";
+    if(!ll) return "love languages — you give love in different currencies, so practice translating";
+    if(mbti<=1) return "personality — you process the world differently, so check assumptions before reacting";
+    return "love languages — even strong matches benefit from speaking each other's language fluently";
+  }
+
+  function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+  // ============================================================
+  // PDF
+  // ============================================================
+  window.downloadPDF = function(){
+    if(!lastResults)return;
+    const {p1,p2}=lastResults;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'pt',format:'letter'});
+    const W=doc.internal.pageSize.getWidth();
+    const H=doc.internal.pageSize.getHeight();
+    let y = 0;
+
+    function newPage(){
+      doc.addPage();
+      doc.setFillColor(10,10,10);doc.rect(0,0,W,H,'F');
+      y = 60;
+    }
+    function checkPage(needed){
+      if(y+needed>H-60) newPage();
+    }
+    function bg(){
+      doc.setFillColor(10,10,10);doc.rect(0,0,W,H,'F');
+    }
+    function gold(){doc.setTextColor(232,201,135);}
+    function ink(){doc.setTextColor(244,241,234);}
+    function dim(){doc.setTextColor(168,163,154);}
+    function dimGold(){doc.setTextColor(138,116,64);}
+    function rule(){doc.setDrawColor(201,169,97);doc.setLineWidth(0.5);doc.line(50,y,W-50,y);y+=20;}
+    function sectionHeader(num,label,heading){
+      checkPage(80);
+      doc.setFont('times','italic');doc.setFontSize(10);dimGold();
+      doc.text(`PART ${num}  ·  ${label}`,W/2,y,{align:'center'});y+=22;
+      doc.setFont('times','normal');doc.setFontSize(22);ink();
+      doc.text(heading,W/2,y,{align:'center'});y+=12;
+      rule();
+    }
+    function pairBlock(label1,result1,sub1,blurb1,label2,result2,sub2,blurb2){
+      checkPage(140);
+      const colW = (W-130)/2;
+      const startY = y;
+      doc.setFont('times','italic');doc.setFontSize(9);dimGold();
+      doc.text(label1.toUpperCase(),60,y);
+      doc.text(label2.toUpperCase(),60+colW+20,y);
+      y+=22;
+      doc.setFont('times','normal');doc.setFontSize(20);gold();
+      doc.text(result1,60,y);
+      doc.text(result2,60+colW+20,y);
+      y+=18;
+      doc.setFont('times','italic');doc.setFontSize(11);ink();
+      doc.text(sub1,60,y);
+      doc.text(sub2,60+colW+20,y);
+      y+=16;
+      doc.setFont('times','normal');doc.setFontSize(10);dim();
+      const lines1 = doc.splitTextToSize(blurb1,colW);
+      const lines2 = doc.splitTextToSize(blurb2,colW);
+      doc.text(lines1,60,y);
+      doc.text(lines2,60+colW+20,y);
+      y += Math.max(lines1.length,lines2.length)*12 + 14;
+    }
+    function analysisBlock(text){
+      const plain = text.replace(/<[^>]+>/g,'');
+      const lines = doc.splitTextToSize(plain,W-140);
+      checkPage(lines.length*13+20);
+      doc.setDrawColor(201,169,97);doc.setLineWidth(1.5);
+      doc.line(55,y-9,55,y+lines.length*13-4);
+      doc.setFont('times','normal');doc.setFontSize(11);ink();
+      doc.text(lines,65,y);
+      y += lines.length*13 + 22;
+    }
+
+    // PAGE 1 - cover
+    bg();
+    doc.setDrawColor(201,169,97);doc.setLineWidth(0.5);
+    doc.line(50,90,W-50,90);
+    doc.setFont('times','italic');gold();doc.setFontSize(11);
+    doc.text("VOLUME TWO  ·  FULL SPECTRUM",W/2,60,{align:'center'});
+    doc.setFont('times','normal');ink();doc.setFontSize(32);
+    doc.text("The Compatibility Study",W/2,135,{align:'center'});
+    doc.setFont('times','italic');doc.setFontSize(13);dim();
+    doc.text("Five frameworks. One picture of the two of you.",W/2,160,{align:'center'});
+    doc.line(50,180,W-50,180);
+    y = 220;
+    doc.setFont('times','italic');doc.setFontSize(14);ink();
+    doc.text(`${p1.name}  &  ${p2.name}`,W/2,y,{align:'center'});
+    y += 30;
+    doc.setFont('times','italic');doc.setFontSize(10);dimGold();
+    doc.text(new Date().toLocaleDateString(),W/2,y,{align:'center'});
+    y = 290;
+
+    // MBTI
+    sectionHeader('I','PERSONALITY','Type Theory');
+    const t1=p1.results.mbti, t2=p2.results.mbti;
+    pairBlock(p1.name,t1,MBTI_TYPES[t1].name,MBTI_TYPES[t1].blurb,p2.name,t2,MBTI_TYPES[t2].name,MBTI_TYPES[t2].blurb);
+    let mbtiMatches=0;for(let i=0;i<4;i++)if(t1[i]===t2[i])mbtiMatches++;
+    const mbtiVibes = ["Magnetic opposites. Total contrast — intense chemistry, real work.","Sparks. Different wiring on three of four. Plenty to learn.","Balanced pairing. Half mirror, half complement. Often the strongest matches.","Mostly aligned. Three of four match with one healthy contrast.","Mirror match. Same wiring across the board."];
+    analysisBlock(mbtiVibes[mbtiMatches]);
+
+    // ATTACHMENT
+    sectionHeader('II','ATTACHMENT','How You Bond');
+    const a1=p1.results.att, a2=p2.results.att;
+    pairBlock(p1.name,ATT_TYPES[a1].name,'',ATT_TYPES[a1].blurb,p2.name,ATT_TYPES[a2].name,'',ATT_TYPES[a2].blurb);
+    const attKey=[a1,a2].sort().join('');
+    const attDyn={
+      'SS':"Two secures. The healthiest pairing in attachment research. You both communicate needs directly and don't spiral when things get hard.",
+      'AA':"Two anxious. You'll both crave reassurance, which can feel intense and beautiful. Watch for amplifying each other's worries.",
+      'VV':"Two avoidants. You'll respect each other's space, but the relationship can quietly drift. Be intentional about connection.",
+      'AS':"Anxious + secure. The secure partner provides a stable base that helps the anxious one calm over time. One of the most healing pairings.",
+      'SV':"Avoidant + secure. The secure doesn't take the avoidant's need for space personally, giving room to slowly trust closeness.",
+      'AV':"Anxious + avoidant. The classic chase-and-withdraw dynamic. Not impossible — but requires both people knowing the pattern and choosing to break it.",
+    };
+    analysisBlock(attDyn[attKey]);
+
+    // LOVE LANGUAGES
+    sectionHeader('III','LOVE LANGUAGES','How You Love');
+    const l1=p1.results.ll, l2=p2.results.ll;
+    pairBlock(p1.name,LL_TYPES[l1.primary],'also: '+LL_TYPES[l1.secondary],LL_BLURB[l1.primary],p2.name,LL_TYPES[l2.primary],'also: '+LL_TYPES[l2.secondary],LL_BLURB[l2.primary]);
+    let llA;
+    if(l1.primary===l2.primary) llA = `You speak the same love language. Both light up around ${LL_TYPES[l1.primary]}. Don't forget the other four — variety keeps things alive.`;
+    else if(l1.secondary===l2.primary || l2.secondary===l1.primary) llA = `Overlapping languages. Your top is your partner's second or close to it. A strong setup.`;
+    else llA = `Different primary languages. ${p1.name} feels loved through ${LL_TYPES[l1.primary]}, ${p2.name} through ${LL_TYPES[l2.primary]}. Practice giving in the other's language, not your own.`;
+    analysisBlock(llA);
+
+    // ENNEAGRAM
+    sectionHeader('IV','ENNEAGRAM','Core Motivation');
+    const e1=p1.results.enn, e2=p2.results.enn;
+    pairBlock(p1.name,'Type '+e1,ENN_TYPES[e1].name.split(' — ')[1],ENN_TYPES[e1].blurb,p2.name,'Type '+e2,ENN_TYPES[e2].name.split(' — ')[1],ENN_TYPES[e2].blurb);
+    let ennA;
+    if(e1===e2) ennA = "Same type. You'll understand each other instantly — and share the same blind spots.";
+    else if(Math.abs(e1-e2)===1) ennA = "Adjacent types. Close enough to speak each other's language, different enough to bring fresh angles.";
+    else ennA = `Type ${e1} is driven by ${getEnnDriver(e1)}, Type ${e2} by ${getEnnDriver(e2)}. Knowing what fundamentally moves the other person is a cheat code for understanding them.`;
+    analysisBlock(ennA);
+
+    // VALUES
+    sectionHeader('V','VALUES & STYLE','Relationship Approach');
+    const v1=p1.results.val, v2=p2.results.val;
+    const vDims = [
+      {key:'conflict',label:'Conflict',map:{now:'Talks immediately',space:'Needs space first'}},
+      {key:'independence',label:'Independence',map:{together:'Wants together time',apart:'Needs alone time'}},
+      {key:'commitment',label:'Commitment',map:{fast:'Commits fast',slow:'Commits slowly'}},
+      {key:'repair',label:'Repair',map:{words:'Needs words',touch:'Needs touch'}},
+      {key:'expression',label:'Expression',map:{open:'Openly affectionate',private:'Privately affectionate'}},
+    ];
+    let aligned=0;
+    vDims.forEach(d=>{
+      checkPage(36);
+      const same = v1[d.key]===v2[d.key];
+      if(same)aligned++;
+      doc.setFont('times','italic');doc.setFontSize(9);dimGold();
+      doc.text(`${d.label.toUpperCase()}  ${same?'· ALIGNED':'· DIFFERS'}`,60,y);y+=14;
+      doc.setFont('times','normal');doc.setFontSize(11);ink();
+      doc.text(`${p1.name}: ${d.map[v1[d.key]]}    |    ${p2.name}: ${d.map[v2[d.key]]}`,60,y);y+=20;
+    });
+    y+=8;
+    let valA;
+    if(aligned>=4) valA = `Highly aligned on relationship style. You match on ${aligned} of 5 dimensions.`;
+    else if(aligned>=2) valA = `Mixed alignment. Match on ${aligned}, differ on ${5-aligned}. Know the gaps and have those conversations early.`;
+    else valA = `Different styles. Only ${aligned} of 5 align. Not incompatible — but you'll need to translate.`;
+    analysisBlock(valA);
+
+    // SYNTHESIS
+    newPage();
+    y=80;
+    doc.setFont('times','italic');doc.setFontSize(11);gold();
+    doc.text("THE BIG PICTURE",W/2,y,{align:'center'});y+=26;
+    doc.setFont('times','normal');doc.setFontSize(24);ink();
+    doc.text("Synthesis",W/2,y,{align:'center'});y+=18;
+    rule();
+    const llSame=l1.primary===l2.primary;
+    const ennSame=e1===e2;
+    const totalPoints = mbtiMatches + (attKey==='SS'?2:attKey.includes('S')?1:0) + (llSame?1:0) + (ennSame?1:0) + aligned;
+    let headline;
+    if(totalPoints>=10) headline="Rare-air compatibility.";
+    else if(totalPoints>=7) headline="Strong potential.";
+    else if(totalPoints>=4) headline="Real chemistry, real work.";
+    else headline="Opposites in motion.";
+    doc.setFont('times','italic');doc.setFontSize(20);gold();
+    doc.text(headline,W/2,y,{align:'center'});y+=30;
+    doc.setFont('times','normal');doc.setFontSize(11);ink();
+    const synthText = `Across all five frameworks, ${p1.name} and ${p2.name} share ${mbtiMatches} of 4 personality dimensions and ${aligned} of 5 relationship style dimensions. Their primary love languages are ${llSame?'the same':'different'}. Their attachment styles are ${ATT_TYPES[a1].name.toLowerCase()} and ${ATT_TYPES[a2].name.toLowerCase()} — which is the dimension that matters most for how they'll handle conflict and closeness over time. The area to focus on going forward: ${getFocusArea(p1.results,p2.results,mbtiMatches,attKey,llSame,aligned)}.`;
+    const synthLines = doc.splitTextToSize(synthText,W-100);
+    doc.text(synthLines,50,y);y+=synthLines.length*14+20;
+    doc.setFont('times','italic');doc.setFontSize(10);dim();
+    const closer = "Compatibility isn't a score — it's a starting place. The strongest relationships aren't the ones with the highest match; they're the ones where both people understand the gaps and choose each other anyway.";
+    const closerLines = doc.splitTextToSize(closer,W-100);
+    doc.text(closerLines,50,y);
+
+    // Footer on last page
+    doc.setDrawColor(201,169,97);doc.setLineWidth(0.3);
+    doc.line(50,H-60,W-50,H-60);
+    doc.setFont('times','italic');doc.setFontSize(9);dimGold();
+    doc.text(`The Compatibility Study  ·  ${new Date().toLocaleDateString()}`,W/2,H-40,{align:'center'});
+
+    doc.save(`compatibility-study-${p1.name}-${p2.name}.pdf`);
+  };
+
+  window.resetGame = function(){
+    if(state.listener)try{off(ref(db,`compat/${state.roomCode}`));}catch(e){}
+    state = {roomCode:null,playerId:null,playerName:null,isHost:false,answers:[],currentQ:0,partnerProgress:0,mySubmitted:false,partnerSubmitted:false,listener:null};
+    document.getElementById('hostName').value='';
+    document.getElementById('joinName').value='';
+    document.getElementById('joinCode').value='';
+    show('home');
+  };
+</script>
+</body>
+</html>
